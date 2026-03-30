@@ -67,13 +67,20 @@ export default function AppointmentDialog({ open, onOpenChange, appointment, def
     
     if (!client || !service) return;
 
+    console.log('AppointmentDialog submit:', { date: formData.date, time: formData.time });
+
+    // Конвертируем локальное время Минска в UTC для сохранения в БД
+    const dateTimeUtc = createDateTimeUtc(formData.date, formData.time);
+
+    console.log('Created UTC datetime:', dateTimeUtc);
+
     const appointmentData: Omit<Appointment, 'id'> & { id?: string } = {
       ...(appointment && { id: appointment.id }),
       clientId: formData.clientId,
       clientName: client.fullName,
       serviceId: formData.serviceId,
       serviceName: service.name,
-      dateTime: `${formData.date}T${formData.time}:00`,
+      dateTime: dateTimeUtc,
       status: formData.status,
       notes: formData.notes,
       price: service.price,

@@ -19,23 +19,23 @@ export function minskToUtc(minskDate: Date | string): Date {
 }
 
 /**
- * Форматирует дату в строку YYYY-MM-DD в локальном времени Минска
+ * Форматирует дату в строку YYYY-MM-DD
+ * Принимает уже сконвертированную дату (не конвертирует повторно)
  */
-export function formatDateMinsk(date: Date | string): string {
-  const minskDate = typeof date === 'string' ? utcToMinsk(date) : date;
-  const year = minskDate.getFullYear();
-  const month = String(minskDate.getMonth() + 1).padStart(2, '0');
-  const day = String(minskDate.getDate()).padStart(2, '0');
+export function formatDateMinsk(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
 /**
- * Форматирует время в строку HH:MM в локальном времени Минска
+ * Форматирует время в строку HH:MM
+ * Принимает уже сконвертированную дату (не конвертирует повторно)
  */
-export function formatTimeMinsk(date: Date | string): string {
-  const minskDate = typeof date === 'string' ? utcToMinsk(date) : date;
-  const hours = String(minskDate.getHours()).padStart(2, '0');
-  const minutes = String(minskDate.getMinutes()).padStart(2, '0');
+export function formatTimeMinsk(date: Date): string {
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
 }
 
@@ -48,11 +48,13 @@ export function createDateTimeUtc(dateStr: string, timeStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
   
-  // Создаем дату как UTC, но с локальными значениями
-  const localDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+  console.log('createDateTimeUtc input:', { dateStr, timeStr, parsed: { year, month, day, hours, minutes } });
   
-  // Конвертируем в UTC (вычитаем смещение)
-  const utcDate = minskToUtc(localDate);
+  // Создаем дату в UTC, вычитая смещение Минска (UTC+3)
+  // Если в Минске 10:00, то в UTC это 07:00
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hours - 3, minutes, 0));
+  
+  console.log('createDateTimeUtc output:', utcDate.toISOString());
   
   return utcDate.toISOString();
 }

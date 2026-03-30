@@ -42,11 +42,15 @@ export function useClients() {
     if (!user || !supabase) return;
 
     try {
+      console.log('Loading clients for master:', user.id, user.email);
+      
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .eq('master_id', user.id)
         .order('full_name', { ascending: true });
+
+      console.log('Clients query result:', { data, error, count: data?.length });
 
       if (error) throw error;
 
@@ -60,6 +64,7 @@ export function useClients() {
         totalVisits: client.total_visits,
       }));
 
+      console.log('Formatted clients:', formattedClients);
       setClients(formattedClients);
     } catch (error) {
       console.error('Error loading clients:', error);
@@ -93,10 +98,56 @@ export function useClients() {
     }
   };
 
+  const updateClient = async (id: string, clientData: Partial<Omit<Client, 'id'>>) => {
+    if (!user || !supabase) return;
+
+    try {
+      const updateData: any = {};
+      
+      if (clientData.fullName !== undefined) updateData.full_name = clientData.fullName;
+      if (clientData.phone !== undefined) updateData.phone = clientData.phone;
+      if (clientData.email !== undefined) updateData.email = clientData.email;
+      if (clientData.totalVisits !== undefined) updateData.total_visits = clientData.totalVisits;
+      if (clientData.lastVisit !== undefined) updateData.last_visit = clientData.lastVisit;
+
+      const { error } = await supabase
+        .from('clients')
+        .update(updateData)
+        .eq('id', id)
+        .eq('master_id', user.id);
+
+      if (error) throw error;
+      await loadClients();
+    } catch (error) {
+      console.error('Error updating client:', error);
+      throw error;
+    }
+  };
+
+  const deleteClient = async (id: string) => {
+    if (!user || !supabase) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', id)
+        .eq('master_id', user.id);
+
+      if (error) throw error;
+      await loadClients();
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      throw error;
+    }
+  };
+
   return {
     clients,
     loading,
     createClient,
+    updateClient,
+    deleteClient,
     refresh: loadClients,
   };
 }

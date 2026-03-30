@@ -75,15 +75,30 @@ export default function CalendarPage() {
     
     const targetDate = days[dayIdx].dateStr;
     
-    return appointments.find(a => {
+    const found = appointments.find(a => {
       // Конвертируем UTC время из БД в локальное время Минска
       const minskDate = utcToMinsk(a.dateTime);
       const aptDate = formatDateMinsk(minskDate);
-      const aptHour = minskDate.getHours();
-      const aptMinute = minskDate.getMinutes();
+      const aptHour = minskDate.getUTCHours();
+      const aptMinute = minskDate.getUTCMinutes();
       
-      return aptDate === targetDate && aptHour === hour && aptMinute === minute;
+      const match = aptDate === targetDate && aptHour === hour && aptMinute === minute;
+      
+      if (match) {
+        console.log('Found appointment for slot:', {
+          slotIdx,
+          targetDate,
+          targetTime: `${hour}:${minute}`,
+          appointmentRaw: a.dateTime,
+          appointmentConverted: minskDate.toISOString(),
+          appointmentDisplay: `${aptDate} ${aptHour}:${aptMinute}`
+        });
+      }
+      
+      return match;
     });
+    
+    return found;
   };
 
   const handleSlotClick = (slotIdx: number) => {
@@ -94,6 +109,9 @@ export default function CalendarPage() {
     
     const date = days[dayIdx].dateStr;
     const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    
+    console.log('CalendarPage slot clicked:', { date, time, slotIdx, dayIdx, timeSlot, hour, minute });
+    
     setSelectedSlot({ date, time });
     setSelectedAppointment(null);
     setDialogOpen(true);

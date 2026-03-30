@@ -5,13 +5,14 @@ import { toast } from 'sonner';
 import Topbar from '@/components/layout/Topbar';
 import ClientDialog from '@/components/ClientDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { mockClients, type Client } from '@/lib/data';
+import { useClients } from '@/hooks/useClients';
+import type { Client } from '@/lib/data';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } };
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>(mockClients);
+  const { clients, loading, createClient } = useClients();
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -24,22 +25,21 @@ export default function ClientsPage() {
     client.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSave = (clientData: Omit<Client, 'id' | 'totalVisits' | 'lastVisit'> & { id?: string }) => {
-    if (clientData.id) {
-      // Edit existing
-      setClients(clients.map(c => c.id === clientData.id ? { ...c, ...clientData } : c));
-      toast.success('Клиент обновлён');
-    } else {
-      // Create new
-      const newClient: Client = {
-        ...clientData,
-        id: 'c' + Date.now(),
-        totalVisits: 0,
-      };
-      setClients([...clients, newClient]);
-      toast.success('Клиент добавлен');
+  const handleSave = async (clientData: Omit<Client, 'id' | 'totalVisits' | 'lastVisit'> & { id?: string }) => {
+    try {
+      if (clientData.id) {
+        // Edit existing - пока не реализовано в хуке
+        toast.info('Редактирование клиентов пока не реализовано');
+      } else {
+        // Create new
+        await createClient(clientData);
+        toast.success('Клиент добавлен');
+      }
+      setEditingClient(null);
+      setDialogOpen(false);
+    } catch (error) {
+      toast.error('Ошибка при сохранении клиента');
     }
-    setEditingClient(null);
   };
 
   const handleEdit = (client: Client) => {
@@ -54,9 +54,10 @@ export default function ClientsPage() {
 
   const handleDeleteConfirm = () => {
     if (deletingClient) {
-      setClients(clients.filter(c => c.id !== deletingClient.id));
-      toast.success('Клиент удалён');
+      // Удаление пока не реализовано в хуке
+      toast.info('Удаление клиентов пока не реализовано');
       setDeletingClient(null);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -68,6 +69,11 @@ export default function ClientsPage() {
   return (
     <div>
       <Topbar title="Клиенты" />
+      {loading ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      ) : (
       <div className="p-6">
         {/* Search bar */}
         <div className="flex gap-3 mb-6">
@@ -150,6 +156,7 @@ export default function ClientsPage() {
           )}
         </motion.div>
       </div>
+      )}
 
       <ClientDialog
         open={dialogOpen}

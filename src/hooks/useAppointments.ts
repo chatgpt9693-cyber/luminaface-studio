@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { utcToMinsk, formatDateMinsk, formatTimeMinsk } from '@/lib/timezone';
 import type { Appointment } from '@/lib/data';
 
 export function useAppointments() {
@@ -76,18 +77,27 @@ export function useAppointments() {
       const clientsMap = new Map(clientsData?.map(c => [c.id, c.full_name]) || []);
       const servicesMap = new Map(servicesData?.map(s => [s.id, s.name]) || []);
 
-      const formattedAppointments: Appointment[] = (appointmentsData || []).map((apt: any) => ({
-        id: apt.id,
-        clientId: apt.client_id,
-        clientName: clientsMap.get(apt.client_id) || 'Неизвестный клиент',
-        serviceId: apt.service_id || '',
-        serviceName: servicesMap.get(apt.service_id) || 'Услуга не указана',
-        dateTime: apt.date_time,
-        status: apt.status,
-        notes: apt.notes,
-        price: apt.price,
-        duration: apt.duration,
-      }));
+      const formattedAppointments: Appointment[] = (appointmentsData || []).map((apt: any) => {
+        const minskDate = utcToMinsk(apt.date_time);
+        console.log('Loading appointment:', {
+          raw: apt.date_time,
+          converted: minskDate.toISOString(),
+          display: `${formatDateMinsk(minskDate)} ${formatTimeMinsk(minskDate)}`
+        });
+        
+        return {
+          id: apt.id,
+          clientId: apt.client_id,
+          clientName: clientsMap.get(apt.client_id) || 'Неизвестный клиент',
+          serviceId: apt.service_id || '',
+          serviceName: servicesMap.get(apt.service_id) || 'Услуга не указана',
+          dateTime: apt.date_time,
+          status: apt.status,
+          notes: apt.notes,
+          price: apt.price,
+          duration: apt.duration,
+        };
+      });
 
       console.log('Formatted appointments:', formattedAppointments);
       setAppointments(formattedAppointments);
@@ -116,18 +126,20 @@ export function useAppointments() {
         masterId = clientData.master_id;
       }
 
+      const insertData = {
+        master_id: masterId,
+        client_id: appointmentData.clientId,
+        service_id: appointmentData.serviceId || null,
+        date_time: appointmentData.dateTime,
+        status: appointmentData.status,
+        duration: appointmentData.duration,
+        price: appointmentData.price,
+        notes: appointmentData.notes,
+      };
+
       const { data, error } = await supabase
         .from('appointments')
-        .insert({
-          master_id: masterId,
-          client_id: appointmentData.clientId,
-          service_id: appointmentData.serviceId || null,
-          date_time: appointmentData.dateTime,
-          status: appointmentData.status,
-          duration: appointmentData.duration,
-          price: appointmentData.price,
-          notes: appointmentData.notes,
-        })
+        .insert(insertData)
         .select()
         .single();
 

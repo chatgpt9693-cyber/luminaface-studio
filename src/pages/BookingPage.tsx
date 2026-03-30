@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import Topbar from '@/components/layout/Topbar';
@@ -6,25 +6,44 @@ import { useServices } from '@/hooks/useServices';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { createDateTimeUtc, formatDateMinsk, utcToMinsk, formatTimeMinsk } from '@/lib/timezone';
 
-const generateSlots = () => {
+const generateAllSlots = () => {
   const slots: string[] = [];
-  const busySlots = ['10:00', '11:30', '16:00'];
   for (let h = 9; h <= 19; h++) {
     for (const m of [0, 30]) {
       const time = `${h.toString().padStart(2, '0')}:${m === 0 ? '00' : '30'}`;
-      if (!busySlots.includes(time)) slots.push(time);
+      slots.push(time);
     }
   }
   return slots;
 };
 
-const availableSlots = generateSlots();
-const DAYS = ['31 мар', '1 апр', '2 апр', '3 апр', '4 апр', '5 апр', '6 апр'];
+const allSlots = generateAllSlots();
+
+// Генерируем даты для следующих 7 дней
+const generateDays = () => {
+  const days = [];
+  const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  
+  const today = new Date();
+  const minskToday = utcToMinsk(today);
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(minskToday);
+    date.setUTCDate(minskToday.getUTCDate() + i);
+    const day = date.getUTCDate();
+    const month = months[date.getUTCMonth()];
+    days.push(`${day} ${month}`);
+  }
+  
+  return days;
+};
 
 export default function BookingPage() {
   const { user } = useAuth();
   const { services, loading: servicesLoading } = useServices();
+  const { appointments, loading: appointmentsLoading } = useAppointments();
   const { createAppointment } = useAppointments();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -33,9 +52,35 @@ export default function BookingPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const DAYS = generateDays();
   const service = services.find(s => s.id === selectedService);
 
-  if (servicesLoading) {
+  // Вычисляем доступные слоты для выбранного дня
+  const getAvailableSlots = () => {
+    const today = new Date();
+    const minskToday = utcToMinsk(today);
+    const targetDate = new Date(minskToday);
+    targetDate.setDate(minskToday.getDate() + selectedDay);
+    const dateStr = formatDateMinsk(targetDate);
+
+    // Фильтруем занятые слоты
+    const busySlots = appointments
+      .filter(apt => {
+        const minskDate = utcToMinsk(apt.dateTime);
+        const aptDate = formatDateMinsk(minskDate);
+        return aptDate === dateStr && apt.status !== 'CANCELLED';
+      })
+      .map(apt => {
+        const minskDate = utcToMinsk(apt.dateTime);
+        return formatTimeMinsk(minskDate);
+      });
+
+    return allSlots.filter(slot => !busySlots.includes(slot));
+  };
+
+  const availableSlots = getAvailableSlots();
+
+  if (servicesLoading || appointmentsLoading) {
     return (
       <div>
         <Topbar title="Запись" />
@@ -51,7 +96,7 @@ export default function BookingPage() {
 
     setSaving(true);
     try {
-      console.log('Creating appointment for user:', user.email);
+      console.log('BookingPage handleConfirm:', { selectedDay, selectedSlot });
       
       // Находим запись клиента в таблице clients
       const { data: clientData, error: clientError } = await supabase!
@@ -66,18 +111,29 @@ export default function BookingPage() {
         throw new Error('Клиент не найден в базе данных. Обратитесь к администратору.');
       }
 
-      // Формируем дату и время
+      // Формируем дату и время в локальном времени Минска
       const today = new Date();
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() + selectedDay);
-      const dateStr = targetDate.toISOString().split('T')[0];
-      const dateTime = `${dateStr}T${selectedSlot}:00`;
+      const minskToday = utcToMinsk(today);
+      const targetDate = new Date(minskToday);
+      targetDate.setUTCDate(minskToday.getUTCDate() + selectedDay);
+      const dateStr = formatDateMinsk(targetDate);
+      
+      console.log('Date calculation:', {
+        today: today.toISOString(),
+        minskToday: minskToday.toISOString(),
+        targetDate: targetDate.toISOString(),
+        dateStr,
+        selectedSlot
+      });
+      
+      // Конвертируем в UTC для сохранения в БД
+      const dateTimeUtc = createDateTimeUtc(dateStr, selectedSlot);
 
       console.log('Creating appointment:', {
         clientId: clientData.id,
         masterId: clientData.master_id,
         serviceId: service.id,
-        dateTime,
+        dateTime: dateTimeUtc,
       });
 
       // Создаем запись
@@ -86,7 +142,7 @@ export default function BookingPage() {
         clientName: user.name,
         serviceId: service.id,
         serviceName: service.name,
-        dateTime: dateTime,
+        dateTime: dateTimeUtc,
         status: 'PENDING',
         notes: '',
         price: service.price,
@@ -199,7 +255,10 @@ export default function BookingPage() {
               {DAYS.map((d, i) => (
                 <button
                   key={i}
-                  onClick={() => setSelectedDay(i)}
+                  onClick={() => {
+                    setSelectedDay(i);
+                    setSelectedSlot(null); // Сбрасываем выбранный слот при смене дня
+                  }}
                   className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                     selectedDay === i ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
                   }`}
@@ -210,21 +269,27 @@ export default function BookingPage() {
             </div>
 
             {/* Time slots */}
-            <div className="grid grid-cols-4 gap-2">
-              {availableSlots.map(slot => (
-                <button
-                  key={slot}
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`py-2 rounded-lg text-xs font-medium transition-all ${
-                    selectedSlot === slot
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
+            {availableSlots.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                На этот день все слоты заняты
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {availableSlots.map(slot => (
+                  <button
+                    key={slot}
+                    onClick={() => setSelectedSlot(slot)}
+                    className={`py-2 rounded-lg text-xs font-medium transition-all ${
+                      selectedSlot === slot
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <button
               disabled={!selectedSlot}
