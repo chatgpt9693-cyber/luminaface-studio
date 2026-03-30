@@ -1,0 +1,94 @@
+import { motion } from 'framer-motion';
+import { CalendarCheck, TrendingUp, Users, Clock } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import Topbar from '@/components/layout/Topbar';
+import { mockAppointments, mockClients, monthlyIncome } from '@/lib/data';
+
+const todayAppointments = mockAppointments.filter(a => a.dateTime.startsWith('2026-03-30'));
+const nextAppointment = todayAppointments.find(a => a.status === 'CONFIRMED');
+const monthRevenue = monthlyIncome[monthlyIncome.length - 1].income;
+
+const stats = [
+  { icon: CalendarCheck, label: 'Сегодня записей', value: todayAppointments.length, color: 'text-primary' },
+  { icon: TrendingUp, label: 'Выручка за март', value: `${(monthRevenue / 1000).toFixed(0)}K ₽`, color: 'text-accent' },
+  { icon: Users, label: 'Всего клиентов', value: mockClients.length, color: 'text-blush' },
+  { icon: Clock, label: 'Следующая запись', value: nextAppointment ? nextAppointment.dateTime.split('T')[1].slice(0, 5) : '—', color: 'text-lavender' },
+];
+
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+};
+
+export default function MasterDashboard() {
+  return (
+    <div>
+      <Topbar title="Дашборд" />
+      <motion.div variants={container} initial="hidden" animate="show" className="p-6 space-y-6">
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((s, i) => (
+            <motion.div key={i} variants={item} className="glass-card-hover p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <s.icon className={`w-5 h-5 ${s.color}`} />
+                </div>
+                <span className="text-sm text-muted-foreground">{s.label}</span>
+              </div>
+              <p className="stat-value">{s.value}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Income chart */}
+          <motion.div variants={item} className="glass-card p-5 lg:col-span-2">
+            <h3 className="text-sm font-medium text-muted-foreground mb-4">Динамика дохода</h3>
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={monthlyIncome}>
+                <defs>
+                  <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(340, 45%, 72%)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(280, 30%, 70%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" stroke="hsl(280,8%,40%)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="hsl(280,8%,40%)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={v => `${v / 1000}K`} />
+                <Tooltip
+                  contentStyle={{ background: 'hsl(280,8%,7%)', border: '1px solid hsl(280,10%,16%)', borderRadius: 12, color: 'hsl(330,20%,92%)' }}
+                  formatter={(v: number) => [`${v.toLocaleString()} ₽`, 'Доход']}
+                />
+                <Area type="monotone" dataKey="income" stroke="hsl(340, 45%, 72%)" strokeWidth={2} fill="url(#incomeGradient)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </motion.div>
+
+          {/* Today's schedule */}
+          <motion.div variants={item} className="glass-card p-5">
+            <h3 className="text-sm font-medium text-muted-foreground mb-4">Расписание на сегодня</h3>
+            <div className="space-y-3">
+              {todayAppointments.map(a => (
+                <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+                  <div className="glow-dot flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{a.clientName}</p>
+                    <p className="text-xs text-muted-foreground">{a.dateTime.split('T')[1].slice(0, 5)} • {a.duration} мин</p>
+                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full ${
+                    a.status === 'CONFIRMED' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'
+                  }`}>
+                    {a.status === 'CONFIRMED' ? 'Подтверждён' : 'Ожидание'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
