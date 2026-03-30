@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useClients } from '@/hooks/useClients';
 import { useServices } from '@/hooks/useServices';
+import { formatDateMinsk, formatTimeMinsk, createDateTimeUtc, getTodayMinsk, utcToMinsk } from '@/lib/timezone';
 import type { Appointment } from '@/lib/data';
 
 interface AppointmentDialogProps {
@@ -33,12 +34,16 @@ export default function AppointmentDialog({ open, onOpenChange, appointment, def
 
   useEffect(() => {
     if (appointment) {
-      const [date, time] = appointment.dateTime.split('T');
+      // Конвертируем UTC время из БД в локальное время Минска
+      const minskDate = utcToMinsk(appointment.dateTime);
+      const date = formatDateMinsk(minskDate);
+      const time = formatTimeMinsk(minskDate);
+      
       setFormData({
         clientId: appointment.clientId,
         serviceId: appointment.serviceId,
         date,
-        time: time.slice(0, 5),
+        time,
         notes: appointment.notes || '',
         status: appointment.status,
       });
@@ -46,7 +51,7 @@ export default function AppointmentDialog({ open, onOpenChange, appointment, def
       setFormData({
         clientId: '',
         serviceId: '',
-        date: defaultDate || new Date().toISOString().split('T')[0],
+        date: defaultDate || getTodayMinsk(),
         time: defaultTime || '10:00',
         notes: '',
         status: 'PENDING',

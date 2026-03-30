@@ -18,7 +18,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string, role: Role) => Promise<void>;
+  register: (email: string, password: string, fullName: string, role: Role, phone?: string) => Promise<void>;
   logout: () => Promise<void>;
   switchRole: (role: Role) => void;
   currentRole: Role;
@@ -166,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, password: string, fullName: string, role: Role) => {
+  const register = async (email: string, password: string, fullName: string, role: Role, phone?: string) => {
     if (!supabase) {
       throw new Error('Supabase не настроен. Проверьте переменные окружения.');
     }
@@ -178,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           full_name: fullName,
           role: role,
+          phone: phone || '',
         },
       },
     });

@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import Topbar from '@/components/layout/Topbar';
-import { defaultServices } from '@/lib/data';
+import { useServices } from '@/hooks/useServices';
+import { useAppointments } from '@/hooks/useAppointments';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const generateSlots = () => {
   const slots: string[] = [];
@@ -20,16 +23,84 @@ const availableSlots = generateSlots();
 const DAYS = ['31 мар', '1 апр', '2 апр', '3 апр', '4 апр', '5 апр', '6 апр'];
 
 export default function BookingPage() {
+  const { user } = useAuth();
+  const { services, loading: servicesLoading } = useServices();
+  const { createAppointment } = useAppointments();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const service = defaultServices.find(s => s.id === selectedService);
+  const service = services.find(s => s.id === selectedService);
 
-  const handleConfirm = () => {
-    setConfirmed(true);
+  if (servicesLoading) {
+    return (
+      <div>
+        <Topbar title="Запись" />
+        <div className="flex items-center justify-center h-96">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  const handleConfirm = async () => {
+    if (!user || !service || !selectedSlot) return;
+
+    setSaving(true);
+    try {
+      console.log('Creating appointment for user:', user.email);
+      
+      // Находим запись клиента в таблице clients
+      const { data: clientData, error: clientError } = await supabase!
+        .from('clients')
+        .select('id, master_id')
+        .eq('email', user.email)
+        .single();
+
+      console.log('Client data:', clientData, 'Error:', clientError);
+
+      if (!clientData) {
+        throw new Error('Клиент не найден в базе данных. Обратитесь к администратору.');
+      }
+
+      // Формируем дату и время
+      const today = new Date();
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + selectedDay);
+      const dateStr = targetDate.toISOString().split('T')[0];
+      const dateTime = `${dateStr}T${selectedSlot}:00`;
+
+      console.log('Creating appointment:', {
+        clientId: clientData.id,
+        masterId: clientData.master_id,
+        serviceId: service.id,
+        dateTime,
+      });
+
+      // Создаем запись
+      await createAppointment({
+        clientId: clientData.id,
+        clientName: user.name,
+        serviceId: service.id,
+        serviceName: service.name,
+        dateTime: dateTime,
+        status: 'PENDING',
+        notes: '',
+        price: service.price,
+        duration: service.duration,
+      });
+
+      console.log('Appointment created successfully');
+      setConfirmed(true);
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      alert(`Ошибка при создании записи: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (confirmed) {
@@ -84,28 +155,32 @@ export default function BookingPage() {
         {step === 1 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
             <h2 className="text-base font-semibold text-foreground mb-4">Выберите услугу</h2>
-            {defaultServices.map(s => (
-              <button
-                key={s.id}
-                onClick={() => { setSelectedService(s.id); setStep(2); }}
-                className={`w-full text-left p-4 rounded-xl border transition-all ${
-                  selectedService === s.id
-                    ? 'bg-primary/10 border-primary/30'
-                    : 'glass-card hover:border-primary/20'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{s.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
+            {services.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Услуги пока не добавлены</p>
+            ) : (
+              services.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => { setSelectedService(s.id); setStep(2); }}
+                  className={`w-full text-left p-4 rounded-xl border transition-all ${
+                    selectedService === s.id
+                      ? 'bg-primary/10 border-primary/30'
+                      : 'glass-card hover:border-primary/20'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{s.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
+                    </div>
+                    <div className="text-right ml-4 flex-shrink-0">
+                      <p className="text-sm font-semibold text-primary">{s.price.toLocaleString()} ₽</p>
+                      <p className="text-xs text-muted-foreground">{s.duration} мин</p>
+                    </div>
                   </div>
-                  <div className="text-right ml-4 flex-shrink-0">
-                    <p className="text-sm font-semibold text-primary">{s.price.toLocaleString()} ₽</p>
-                    <p className="text-xs text-muted-foreground">{s.duration} мин</p>
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))
+            )}
           </motion.div>
         )}
 
@@ -201,9 +276,17 @@ export default function BookingPage() {
 
             <button
               onClick={handleConfirm}
-              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              disabled={saving}
+              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Подтвердить запись
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                'Подтвердить запись'
+              )}
             </button>
           </motion.div>
         )}

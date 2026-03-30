@@ -3,6 +3,13 @@
 
 /* Удаляем старую политику просмотра записей */
 DROP POLICY IF EXISTS "Masters can view own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Masters can insert own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Masters can update own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Masters can delete own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Clients can view master schedule" ON public.appointments;
+DROP POLICY IF EXISTS "Clients can create own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Clients can update own appointments" ON public.appointments;
+DROP POLICY IF EXISTS "Clients can cancel own appointments" ON public.appointments;
 
 /* Создаем новые политики */
 
@@ -11,6 +18,18 @@ CREATE POLICY "Masters can view own appointments" ON public.appointments
   FOR SELECT USING (
     auth.uid() = master_id
   );
+
+/* 1.1. Мастера могут создавать записи */
+CREATE POLICY "Masters can insert own appointments" ON public.appointments
+  FOR INSERT WITH CHECK (auth.uid() = master_id);
+
+/* 1.2. Мастера могут обновлять свои записи */
+CREATE POLICY "Masters can update own appointments" ON public.appointments
+  FOR UPDATE USING (auth.uid() = master_id);
+
+/* 1.3. Мастера могут удалять свои записи */
+CREATE POLICY "Masters can delete own appointments" ON public.appointments
+  FOR DELETE USING (auth.uid() = master_id);
 
 /* 2. Клиенты видят все записи мастера (для выбора свободного времени) */
 /*    но без доступа к личным данным других клиентов */
@@ -54,9 +73,22 @@ CREATE POLICY "Clients can cancel own appointments" ON public.appointments
 /* Обновляем политики для таблицы clients */
 /* Клиенты должны видеть список клиентов мастера (для выбора при записи) */
 DROP POLICY IF EXISTS "Masters can view own clients" ON public.clients;
+DROP POLICY IF EXISTS "Masters can insert own clients" ON public.clients;
+DROP POLICY IF EXISTS "Masters can update own clients" ON public.clients;
+DROP POLICY IF EXISTS "Masters can delete own clients" ON public.clients;
+DROP POLICY IF EXISTS "Clients can view master clients list" ON public.clients;
 
 CREATE POLICY "Masters can view own clients" ON public.clients
   FOR SELECT USING (auth.uid() = master_id);
+
+CREATE POLICY "Masters can insert own clients" ON public.clients
+  FOR INSERT WITH CHECK (auth.uid() = master_id);
+
+CREATE POLICY "Masters can update own clients" ON public.clients
+  FOR UPDATE USING (auth.uid() = master_id);
+
+CREATE POLICY "Masters can delete own clients" ON public.clients
+  FOR DELETE USING (auth.uid() = master_id);
 
 CREATE POLICY "Clients can view master clients list" ON public.clients
   FOR SELECT USING (
@@ -70,9 +102,22 @@ CREATE POLICY "Clients can view master clients list" ON public.clients
 /* Обновляем политики для services */
 /* Клиенты должны видеть услуги мастера */
 DROP POLICY IF EXISTS "Masters can view own services" ON public.services;
+DROP POLICY IF EXISTS "Masters can insert own services" ON public.services;
+DROP POLICY IF EXISTS "Masters can update own services" ON public.services;
+DROP POLICY IF EXISTS "Masters can delete own services" ON public.services;
+DROP POLICY IF EXISTS "Clients can view services" ON public.services;
 
 CREATE POLICY "Masters can view own services" ON public.services
   FOR SELECT USING (auth.uid() = master_id);
+
+CREATE POLICY "Masters can insert own services" ON public.services
+  FOR INSERT WITH CHECK (auth.uid() = master_id);
+
+CREATE POLICY "Masters can update own services" ON public.services
+  FOR UPDATE USING (auth.uid() = master_id);
+
+CREATE POLICY "Masters can delete own services" ON public.services
+  FOR DELETE USING (auth.uid() = master_id);
 
 CREATE POLICY "Clients can view services" ON public.services
   FOR SELECT USING (

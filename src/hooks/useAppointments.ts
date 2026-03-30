@@ -43,32 +43,45 @@ export function useAppointments() {
     if (!user || !supabase) return;
 
     try {
+      console.log('Loading appointments for user:', user.email, 'role:', user.role);
+      
+      // Загружаем записи БЕЗ join'ов
       let query = supabase
         .from('appointments')
-        .select(`
-          *,
-          client:clients(full_name),
-          service:services(name)
-        `)
+        .select('*')
         .order('date_time', { ascending: true });
 
       // Мастер видит все свои записи
       if (user.role === 'MASTER') {
         query = query.eq('master_id', user.id);
       }
-      // Клиент видит все записи (для выбора свободного времени)
-      // но фильтруем на фронте, чтобы показывать только нужные
 
-      const { data, error } = await query;
+      const { data: appointmentsData, error: appointmentsError } = await query;
 
-      if (error) throw error;
+      if (appointmentsError) throw appointmentsError;
 
-      const formattedAppointments: Appointment[] = (data || []).map((apt: any) => ({
+      console.log('Appointments loaded:', appointmentsData?.length || 0);
+
+      // Загружаем клиентов отдельно
+      const { data: clientsData } = await supabase
+        .from('clients')
+        .select('id, full_name');
+
+      // Загружаем услуги отдельно
+      const { data: servicesData } = await supabase
+        .from('services')
+        .select('id, name');
+
+      // Создаем мапы для быстрого поиска
+      const clientsMap = new Map(clientsData?.map(c => [c.id, c.full_name]) || []);
+      const servicesMap = new Map(servicesData?.map(s => [s.id, s.name]) || []);
+
+      const formattedAppointments: Appointment[] = (appointmentsData || []).map((apt: any) => ({
         id: apt.id,
         clientId: apt.client_id,
-        clientName: apt.client?.full_name || 'Неизвестный клиент',
+        clientName: clientsMap.get(apt.client_id) || 'Неизвестный клиент',
         serviceId: apt.service_id || '',
-        serviceName: apt.service?.name || 'Услуга не указана',
+        serviceName: servicesMap.get(apt.service_id) || 'Услуга не указана',
         dateTime: apt.date_time,
         status: apt.status,
         notes: apt.notes,
@@ -76,6 +89,7 @@ export function useAppointments() {
         duration: apt.duration,
       }));
 
+      console.log('Formatted appointments:', formattedAppointments);
       setAppointments(formattedAppointments);
     } catch (error) {
       console.error('Error loading appointments:', error);
@@ -88,10 +102,24 @@ export function useAppointments() {
     if (!user || !supabase) return;
 
     try {
+      // Для клиента нужно найти master_id через таблицу clients
+      let masterId = user.id;
+      
+      if (user.role === 'CLIENT') {
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('master_id')
+          .eq('email', user.email)
+          .single();
+        
+        if (!clientData) throw new Error('Клиент не найден');
+        masterId = clientData.master_id;
+      }
+
       const { data, error } = await supabase
         .from('appointments')
         .insert({
-          master_id: user.id,
+          master_id: masterId,
           client_id: appointmentData.clientId,
           service_id: appointmentData.serviceId || null,
           date_time: appointmentData.dateTime,
@@ -113,21 +141,25 @@ export function useAppointments() {
   };
 
   const updateAppointment = async (id: string, appointmentData: Partial<Appointment>) => {
-    if (!supabase) return;
+    if (!supabase || !user) return;
 
     try {
+      // Создаем объект обновления только с теми полями, которые переданы
+      const updateData: any = {};
+      
+      if (appointmentData.clientId !== undefined) updateData.client_id = appointmentData.clientId;
+      if (appointmentData.serviceId !== undefined) updateData.service_id = appointmentData.serviceId || null;
+      if (appointmentData.dateTime !== undefined) updateData.date_time = appointmentData.dateTime;
+      if (appointmentData.status !== undefined) updateData.status = appointmentData.status;
+      if (appointmentData.duration !== undefined) updateData.duration = appointmentData.duration;
+      if (appointmentData.price !== undefined) updateData.price = appointmentData.price;
+      if (appointmentData.notes !== undefined) updateData.notes = appointmentData.notes;
+
       const { error } = await supabase
         .from('appointments')
-        .update({
-          client_id: appointmentData.clientId,
-          service_id: appointmentData.serviceId || null,
-          date_time: appointmentData.dateTime,
-          status: appointmentData.status,
-          duration: appointmentData.duration,
-          price: appointmentData.price,
-          notes: appointmentData.notes,
-        })
-        .eq('id', id);
+        .update(updateData)
+        .eq('id', id)
+        .eq('master_id', user.id); // Явно указываем что обновляем только свои записи
 
       if (error) throw error;
       await loadAppointments();
@@ -138,13 +170,14 @@ export function useAppointments() {
   };
 
   const deleteAppointment = async (id: string) => {
-    if (!supabase) return;
+    if (!supabase || !user) return;
 
     try {
       const { error } = await supabase
         .from('appointments')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('master_id', user.id); // Явно указываем что удаляем только свои записи
 
       if (error) throw error;
       await loadAppointments();

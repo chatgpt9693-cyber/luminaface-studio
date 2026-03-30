@@ -15,6 +15,27 @@ export function useClients() {
     }
 
     loadClients();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('clients_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clients',
+          filter: `master_id=eq.${user.id}`,
+        },
+        () => {
+          loadClients();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const loadClients = async () => {

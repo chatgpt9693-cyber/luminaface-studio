@@ -5,33 +5,32 @@ import { toast } from 'sonner';
 import Topbar from '@/components/layout/Topbar';
 import ServiceDialog from '@/components/ServiceDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { defaultServices, type Service } from '@/lib/data';
+import { useServices } from '@/hooks/useServices';
+import type { Service } from '@/lib/data';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<Service[]>(defaultServices);
+  const { services, loading, createService, updateService, deleteService } = useServices();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
 
-  const handleSave = (serviceData: Omit<Service, 'id'> & { id?: string }) => {
-    if (serviceData.id) {
-      // Edit existing
-      setServices(services.map(s => s.id === serviceData.id ? serviceData as Service : s));
-      toast.success('Услуга обновлена');
-    } else {
-      // Create new
-      const newService: Service = {
-        ...serviceData,
-        id: Date.now().toString(),
-      };
-      setServices([...services, newService]);
-      toast.success('Услуга создана');
+  const handleSave = async (serviceData: Omit<Service, 'id'> & { id?: string }) => {
+    try {
+      if (serviceData.id) {
+        await updateService(serviceData.id, serviceData);
+        toast.success('Услуга обновлена');
+      } else {
+        await createService(serviceData);
+        toast.success('Услуга создана');
+      }
+      setEditingService(null);
+    } catch (error) {
+      toast.error('Ошибка при сохранении услуги');
     }
-    setEditingService(null);
   };
 
   const handleEdit = (service: Service) => {
@@ -44,11 +43,15 @@ export default function ServicesPage() {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deletingService) {
-      setServices(services.filter(s => s.id !== deletingService.id));
-      toast.success('Услуга удалена');
-      setDeletingService(null);
+      try {
+        await deleteService(deletingService.id);
+        toast.success('Услуга удалена');
+        setDeletingService(null);
+      } catch (error) {
+        toast.error('Ошибка при удалении услуги');
+      }
     }
   };
 
@@ -60,6 +63,11 @@ export default function ServicesPage() {
   return (
     <div>
       <Topbar title="Услуги" />
+      {loading ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      ) : (
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <p className="text-sm text-muted-foreground">{services.length} услуг</p>
@@ -108,6 +116,7 @@ export default function ServicesPage() {
           ))}
         </motion.div>
       </div>
+      )}
 
       <ServiceDialog
         open={dialogOpen}

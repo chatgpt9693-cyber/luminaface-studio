@@ -12,9 +12,11 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  CalendarCheck,
+  History,
 } from 'lucide-react';
 
-const navItems = [
+const masterNavItems = [
   { icon: LayoutDashboard, label: 'Дашборд', path: '/' },
   { icon: Calendar, label: 'Календарь', path: '/calendar' },
   { icon: Users, label: 'Клиенты', path: '/clients' },
@@ -22,11 +24,19 @@ const navItems = [
   { icon: TrendingUp, label: 'Доходы', path: '/income' },
 ];
 
+const clientNavItems = [
+  { icon: LayoutDashboard, label: 'Главная', path: '/client' },
+  { icon: CalendarCheck, label: 'Записаться', path: '/client/booking' },
+  { icon: History, label: 'История', path: '/client/history' },
+];
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const navItems = user?.role === 'MASTER' ? masterNavItems : clientNavItems;
 
   const handleLogout = () => {
     logout();

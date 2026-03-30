@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -47,7 +48,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(email, password, fullName, 'CLIENT');
+      await register(email, password, fullName, 'CLIENT', phone || '');
       toast.success('Регистрация успешна!');
     } catch (err: any) {
       setError(err.message || 'Ошибка регистрации');
@@ -105,6 +106,17 @@ export default function RegisterPage() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.ru"
                 required
+                className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Телефон (опционально)</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="+7 (999) 123-45-67"
                 className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all"
               />
             </div>

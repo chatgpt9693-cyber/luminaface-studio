@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Topbar from '@/components/layout/Topbar';
 import AppointmentDialog from '@/components/AppointmentDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAppointments } from '@/hooks/useAppointments';
+import { formatDateMinsk, formatTimeMinsk, utcToMinsk, getTodayMinsk } from '@/lib/timezone';
 import type { Appointment } from '@/lib/data';
 
-const hours = Array.from({ length: 12 }, (_, i) => i + 9);
+const hours = Array.from({ length: 24 }, (_, i) => i + 9); // 9:00 - 20:30 (12 часов * 2 слота)
 
 function getWeekDays(startDate: Date) {
   const days = [];
@@ -55,29 +57,90 @@ const serviceColors: Record<string, string> = {
 };
 
 export default function CalendarPage() {
-  const { appointments, loading, createAppointment, updateAppointment } = useAppointments();
+  const { appointments, loading, createAppointment, updateAppointment, deleteAppointment } = useAppointments();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => getMonday(new Date()));
   
   const days = getWeekDays(currentWeekStart);
 
-  const getAppointmentForSlot = (dayIdx: number, hour: number) => {
+  const getAppointmentForSlot = (slotIdx: number) => {
+    const dayIdx = Math.floor(slotIdx / 24);
+    const timeSlot = slotIdx % 24;
+    const hour = Math.floor(timeSlot / 2) + 9;
+    const minute = (timeSlot % 2) * 30;
+    
     const targetDate = days[dayIdx].dateStr;
-    const targetTime = `${hour.toString().padStart(2, '0')}:00:00`;
     
     return appointments.find(a => {
-      const aptDate = a.dateTime.split('T')[0];
-      const aptTime = a.dateTime.split('T')[1];
-      return aptDate === targetDate && aptTime.startsWith(targetTime.slice(0, 5));
+      // Конвертируем UTC время из БД в локальное время Минска
+      const minskDate = utcToMinsk(a.dateTime);
+      const aptDate = formatDateMinsk(minskDate);
+      const aptHour = minskDate.getHours();
+      const aptMinute = minskDate.getMinutes();
+      
+      return aptDate === targetDate && aptHour === hour && aptMinute === minute;
     });
   };
 
-  const handleSlotClick = (dayIdx: number, hour: number) => {
+  const handleSlotClick = (slotIdx: number) => {
+    const dayIdx = Math.floor(slotIdx / 24);
+    const timeSlot = slotIdx % 24;
+    const hour = Math.floor(timeSlot / 2) + 9;
+    const minute = (timeSlot % 2) * 30;
+    
     const date = days[dayIdx].dateStr;
-    const time = `${hour.toString().padStart(2, '0')}:00`;
+    const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     setSelectedSlot({ date, time });
+    setSelectedAppointment(null);
     setDialogOpen(true);
+  };
+
+  const handleAppointmentClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setSelectedSlot(null);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (appointment: Appointment, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletingAppointment(appointment);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deletingAppointment) {
+      try {
+        await deleteAppointment(deletingAppointment.id);
+        toast.success('Запись удалена');
+        setDeletingAppointment(null);
+      } catch (error) {
+        toast.error('Ошибка при удалении записи');
+      }
+    }
+  };
+
+  const handleCompleteAppointment = async (appointment: Appointment, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await updateAppointment(appointment.id, { ...appointment, status: 'COMPLETED' });
+      toast.success('Запись завершена');
+    } catch (error) {
+      toast.error('Ошибка при обновлении записи');
+    }
+  };
+
+  const handleCancelAppointment = async (appointment: Appointment, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await updateAppointment(appointment.id, { ...appointment, status: 'CANCELLED' });
+      toast.success('Запись отменена');
+    } catch (error) {
+      toast.error('Ошибка при обновлении записи');
+    }
   };
 
   const handleSave = async (appointmentData: Omit<Appointment, 'id'> & { id?: string }) => {
@@ -159,7 +222,7 @@ export default function CalendarPage() {
           <div className="grid grid-cols-8">
             <div className="p-3 border-b border-border" />
             {days.map((d, i) => {
-              const isToday = d.dateStr === new Date().toISOString().split('T')[0];
+              const isToday = d.dateStr === getTodayMinsk();
               return (
                 <div 
                   key={i} 
@@ -172,34 +235,77 @@ export default function CalendarPage() {
               );
             })}
 
-            {hours.map(hour => (
-              <div key={`row-${hour}`} className="contents">
-                <div className="p-3 text-xs text-muted-foreground text-right pr-4 border-r border-border">
-                  {hour}:00
+            {hours.map((_, hourIdx) => {
+              const hour = Math.floor(hourIdx / 2) + 9;
+              const minute = (hourIdx % 2) * 30;
+              const isFullHour = minute === 0;
+              
+              return (
+                <div key={`row-${hourIdx}`} className="contents">
+                  <div className="p-3 text-xs text-muted-foreground text-right pr-4 border-r border-border">
+                    {isFullHour ? `${hour}:00` : ''}
+                  </div>
+                  {days.map((_, dayIdx) => {
+                    const slotIdx = dayIdx * 24 + hourIdx;
+                    const appointment = getAppointmentForSlot(slotIdx);
+                    return (
+                      <div
+                        key={`${dayIdx}-${hourIdx}`}
+                        onClick={() => !appointment && handleSlotClick(slotIdx)}
+                        className="p-1 min-h-[32px] border-b border-r border-border/50 hover:bg-primary/5 transition-colors cursor-pointer"
+                      >
+                        {appointment && (
+                          <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            onClick={() => handleAppointmentClick(appointment)}
+                            className={`p-1.5 rounded-lg border text-xs cursor-pointer relative group ${
+                              appointment.status === 'COMPLETED' ? 'bg-green-500/20 border-green-500/30 text-green-700 dark:text-green-300' :
+                              appointment.status === 'CANCELLED' ? 'bg-red-500/20 border-red-500/30 text-red-700 dark:text-red-300 opacity-60' :
+                              serviceColors[appointment.serviceId] || 'bg-primary/20 border-primary/30 text-primary'
+                            }`}
+                          >
+                            <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {appointment.status !== 'COMPLETED' && appointment.status !== 'CANCELLED' && (
+                                <>
+                                  <button
+                                    onClick={(e) => handleCompleteAppointment(appointment, e)}
+                                    className="w-4 h-4 rounded bg-green-500/80 text-white flex items-center justify-center hover:bg-green-600"
+                                    title="Завершить"
+                                  >
+                                    <Check className="w-2.5 h-2.5" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => handleCancelAppointment(appointment, e)}
+                                    className="w-4 h-4 rounded bg-orange-500/80 text-white flex items-center justify-center hover:bg-orange-600"
+                                    title="Отменить"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={(e) => handleDeleteClick(appointment, e)}
+                                className="w-4 h-4 rounded bg-destructive/80 text-destructive-foreground flex items-center justify-center hover:bg-destructive"
+                                title="Удалить"
+                              >
+                                <Trash2 className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                            <p className="font-medium truncate pr-12">{appointment.clientName}</p>
+                            <p className="opacity-70 text-[10px]">
+                              {appointment.duration} мин
+                              {appointment.status === 'COMPLETED' && ' • Завершено'}
+                              {appointment.status === 'CANCELLED' && ' • Отменено'}
+                            </p>
+                          </motion.div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                {days.map((_, dayIdx) => {
-                  const appointment = getAppointmentForSlot(dayIdx, hour);
-                  return (
-                    <div
-                      key={`${dayIdx}-${hour}`}
-                      onClick={() => !appointment && handleSlotClick(dayIdx, hour)}
-                      className="p-1 min-h-[48px] border-b border-r border-border/50 hover:bg-primary/5 transition-colors cursor-pointer"
-                    >
-                      {appointment && (
-                        <motion.div
-                          initial={{ scale: 0.9, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          className={`p-1.5 rounded-lg border text-xs ${serviceColors[appointment.serviceId] || 'bg-primary/20 border-primary/30 text-primary'}`}
-                        >
-                          <p className="font-medium truncate">{appointment.clientName}</p>
-                          <p className="opacity-70">{appointment.duration} мин</p>
-                        </motion.div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       </div>
@@ -208,10 +314,28 @@ export default function CalendarPage() {
       <AppointmentDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        appointment={selectedAppointment}
         defaultDate={selectedSlot?.date}
         defaultTime={selectedSlot?.time}
         onSave={handleSave}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить запись?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите удалить запись для {deletingAppointment?.clientName}? Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

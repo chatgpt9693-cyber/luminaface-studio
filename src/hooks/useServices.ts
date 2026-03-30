@@ -78,10 +78,53 @@ export function useServices() {
     }
   };
 
+  const updateService = async (id: string, serviceData: Partial<Service>) => {
+    if (!user || !supabase || user.role !== 'MASTER') return;
+
+    try {
+      const { error } = await supabase
+        .from('services')
+        .update({
+          name: serviceData.name,
+          duration: serviceData.duration,
+          price: serviceData.price,
+          description: serviceData.description,
+        })
+        .eq('id', id)
+        .eq('master_id', user.id);
+
+      if (error) throw error;
+      await loadServices();
+    } catch (error) {
+      console.error('Error updating service:', error);
+      throw error;
+    }
+  };
+
+  const deleteService = async (id: string) => {
+    if (!user || !supabase || user.role !== 'MASTER') return;
+
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', id)
+        .eq('master_id', user.id);
+
+      if (error) throw error;
+      await loadServices();
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      throw error;
+    }
+  };
+
   return {
     services,
     loading,
     createService,
+    updateService,
+    deleteService,
     refresh: loadServices,
   };
 }
