@@ -2,18 +2,10 @@ import { motion } from 'framer-motion';
 import { CalendarCheck, TrendingUp, Users, Clock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import Topbar from '@/components/layout/Topbar';
-import { mockAppointments, mockClients, monthlyIncome } from '@/lib/data';
-
-const todayAppointments = mockAppointments.filter(a => a.dateTime.startsWith('2026-03-30'));
-const nextAppointment = todayAppointments.find(a => a.status === 'CONFIRMED');
-const monthRevenue = monthlyIncome[monthlyIncome.length - 1].income;
-
-const stats = [
-  { icon: CalendarCheck, label: 'Сегодня записей', value: todayAppointments.length, color: 'text-primary' },
-  { icon: TrendingUp, label: 'Выручка за март', value: `${(monthRevenue / 1000).toFixed(0)}K ₽`, color: 'text-accent' },
-  { icon: Users, label: 'Всего клиентов', value: mockClients.length, color: 'text-blush' },
-  { icon: Clock, label: 'Следующая запись', value: nextAppointment ? nextAppointment.dateTime.split('T')[1].slice(0, 5) : '—', color: 'text-lavender' },
-];
+import { useAppointments } from '@/hooks/useAppointments';
+import { useClients } from '@/hooks/useClients';
+import { monthlyIncome } from '@/lib/data';
+import { utcToMinsk, formatTimeMinsk, formatDateMinsk } from '@/lib/timezone';
 
 const container = {
   hidden: {},
@@ -25,6 +17,44 @@ const item = {
 };
 
 export default function MasterDashboard() {
+  const { appointments, loading: appointmentsLoading } = useAppointments();
+  const { clients, loading: clientsLoading } = useClients();
+
+  // Получаем сегодняшнюю дату в Минске
+  const today = new Date();
+  const minskToday = utcToMinsk(today);
+  const todayStr = formatDateMinsk(minskToday);
+
+  // Фильтруем записи на сегодня
+  const todayAppointments = appointments.filter(a => {
+    const minskDate = utcToMinsk(a.dateTime);
+    const dateStr = formatDateMinsk(minskDate);
+    return dateStr === todayStr;
+  });
+
+  const nextAppointment = todayAppointments.find(a => a.status === 'CONFIRMED' || a.status === 'PENDING');
+  const monthRevenue = monthlyIncome[monthlyIncome.length - 1].income;
+
+  const stats = [
+    { icon: CalendarCheck, label: 'Сегодня записей', value: todayAppointments.length, color: 'text-primary' },
+    { icon: TrendingUp, label: 'Выручка за март', value: `${(monthRevenue / 1000).toFixed(0)}K ₽`, color: 'text-accent' },
+    { icon: Users, label: 'Всего клиентов', value: clients.length, color: 'text-blush' },
+    { icon: Clock, label: 'Следующая запись', value: nextAppointment ? formatTimeMinsk(utcToMinsk(nextAppointment.dateTime)) : '—', color: 'text-lavender' },
+  ];
+
+  const loading = appointmentsLoading || clientsLoading;
+
+  if (loading) {
+    return (
+      <div>
+        <Topbar title="Дашборд" />
+        <div className="flex items-center justify-center h-96">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <Topbar title="Дашборд" />
@@ -71,20 +101,34 @@ export default function MasterDashboard() {
           <motion.div variants={item} className="glass-card p-5">
             <h3 className="text-sm font-medium text-muted-foreground mb-4">Расписание на сегодня</h3>
             <div className="space-y-3">
-              {todayAppointments.map(a => (
-                <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
-                  <div className="glow-dot flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">{a.clientName}</p>
-                    <p className="text-xs text-muted-foreground">{a.dateTime.split('T')[1].slice(0, 5)} • {a.duration} мин</p>
-                  </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full ${
-                    a.status === 'CONFIRMED' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'
-                  }`}>
-                    {a.status === 'CONFIRMED' ? 'Подтверждён' : 'Ожидание'}
-                  </span>
-                </div>
-              ))}
+              {todayAppointments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Нет записей на сегодня</p>
+              ) : (
+                todayAppointments.map(a => {
+                  const minskDate = utcToMinsk(a.dateTime);
+                  const time = formatTimeMinsk(minskDate);
+                  return (
+                    <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+                      <div className="glow-dot flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{a.clientName}</p>
+                        <p className="text-xs text-muted-foreground">{time} • {a.duration} мин</p>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full ${
+                        a.status === 'CONFIRMED' ? 'bg-primary/10 text-primary' : 
+                        a.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' :
+                        a.status === 'CANCELLED' ? 'bg-red-500/10 text-red-500' :
+                        'bg-accent/10 text-accent'
+                      }`}>
+                        {a.status === 'CONFIRMED' ? 'Подтверждён' : 
+                         a.status === 'COMPLETED' ? 'Завершён' :
+                         a.status === 'CANCELLED' ? 'Отменён' :
+                         'Ожидание'}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </motion.div>
         </div>

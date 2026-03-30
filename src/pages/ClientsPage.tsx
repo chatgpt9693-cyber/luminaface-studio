@@ -12,7 +12,7 @@ const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } 
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } };
 
 export default function ClientsPage() {
-  const { clients, loading, createClient } = useClients();
+  const { clients, loading, createClient, updateClient, deleteClient } = useClients();
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -28,8 +28,9 @@ export default function ClientsPage() {
   const handleSave = async (clientData: Omit<Client, 'id' | 'totalVisits' | 'lastVisit'> & { id?: string }) => {
     try {
       if (clientData.id) {
-        // Edit existing - пока не реализовано в хуке
-        toast.info('Редактирование клиентов пока не реализовано');
+        // Edit existing
+        await updateClient(clientData.id, clientData);
+        toast.success('Клиент обновлён');
       } else {
         // Create new
         await createClient(clientData);
@@ -52,12 +53,16 @@ export default function ClientsPage() {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deletingClient) {
-      // Удаление пока не реализовано в хуке
-      toast.info('Удаление клиентов пока не реализовано');
-      setDeletingClient(null);
-      setDeleteDialogOpen(false);
+      try {
+        await deleteClient(deletingClient.id);
+        toast.success('Клиент удалён');
+        setDeletingClient(null);
+        setDeleteDialogOpen(false);
+      } catch (error) {
+        toast.error('Ошибка при удалении клиента');
+      }
     }
   };
 

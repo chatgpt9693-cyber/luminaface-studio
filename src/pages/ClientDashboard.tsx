@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import Topbar from '@/components/layout/Topbar';
 import FaceModel, { FaceZone } from '@/components/FaceModel';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockAppointments } from '@/lib/data';
+import { useAppointments } from '@/hooks/useAppointments';
+import { utcToMinsk, formatTimeMinsk, formatDateMinsk } from '@/lib/timezone';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
@@ -16,9 +17,23 @@ const lastTreatedZones: FaceZone[] = ['cheeks', 'lymph', 'jaw'];
 export default function ClientDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { appointments, loading } = useAppointments();
   const [selectedZone, setSelectedZone] = useState<FaceZone | null>(null);
 
-  const upcomingAppointment = mockAppointments.find(a => a.status === 'CONFIRMED');
+  // Находим ближайшую подтвержденную запись
+  const now = new Date();
+  const upcomingAppointment = appointments
+    .filter(a => (a.status === 'CONFIRMED' || a.status === 'PENDING') && new Date(a.dateTime) > now)
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
+
+  // Считаем статистику
+  const totalVisits = appointments.filter(a => a.status === 'COMPLETED').length;
+  const thisMonthVisits = appointments.filter(a => {
+    if (a.status !== 'COMPLETED') return false;
+    const aptDate = new Date(a.dateTime);
+    const nowDate = new Date();
+    return aptDate.getMonth() === nowDate.getMonth() && aptDate.getFullYear() === nowDate.getFullYear();
+  }).length;
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -26,6 +41,17 @@ export default function ClientDashboard() {
     if (h < 18) return 'Добрый день';
     return 'Добрый вечер';
   };
+
+  if (loading) {
+    return (
+      <div>
+        <Topbar title="Мой кабинет" />
+        <div className="flex items-center justify-center h-96">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -58,7 +84,7 @@ export default function ClientDashboard() {
             <p className="text-base font-semibold text-foreground">{upcomingAppointment.serviceName}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {new Date(upcomingAppointment.dateTime).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
-              {' '} в {upcomingAppointment.dateTime.split('T')[1].slice(0, 5)}
+              {' '} в {formatTimeMinsk(utcToMinsk(upcomingAppointment.dateTime))}
             </p>
             <p className="text-sm text-muted-foreground">{upcomingAppointment.duration} мин · {upcomingAppointment.price.toLocaleString()} ₽</p>
           </motion.div>
@@ -107,16 +133,18 @@ export default function ClientDashboard() {
               <h3 className="text-sm font-medium text-muted-foreground mb-4">Моя статистика</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-secondary">
-                  <p className="stat-value text-xl">12</p>
+                  <p className="stat-value text-xl">{totalVisits}</p>
                   <p className="text-xs text-muted-foreground">Процедур всего</p>
                 </div>
                 <div className="p-3 rounded-xl bg-secondary">
-                  <p className="stat-value text-xl">3</p>
+                  <p className="stat-value text-xl">{thisMonthVisits}</p>
                   <p className="text-xs text-muted-foreground">В этом месяце</p>
                 </div>
                 <div className="p-3 rounded-xl bg-secondary col-span-2">
                   <p className="text-xs text-muted-foreground mb-1">Следующая рекомендация</p>
-                  <p className="text-sm font-medium text-foreground">Лимфодренаж через 7 дней</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {totalVisits > 0 ? 'Лимфодренаж через 7 дней' : 'Запишитесь на первую процедуру'}
+                  </p>
                 </div>
               </div>
             </div>

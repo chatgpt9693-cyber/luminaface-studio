@@ -3,7 +3,8 @@ import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Topbar from '@/components/layout/Topbar';
-import { monthlyIncome, mockAppointments } from '@/lib/data';
+import { monthlyIncome } from '@/lib/data';
+import { useAppointments } from '@/hooks/useAppointments';
 import { exportIncomeToCSV } from '@/lib/export';
 
 const serviceBreakdown = [
@@ -15,13 +16,14 @@ const serviceBreakdown = [
   { name: 'Комбо', value: 17000, color: 'hsl(300, 25%, 65%)' },
 ];
 
-const totalMonth = monthlyIncome[monthlyIncome.length - 1].income;
-const completedCount = mockAppointments.filter(a => a.status === 'CONFIRMED' || a.status === 'COMPLETED').length;
-
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
 
 export default function IncomePage() {
+  const { appointments, loading } = useAppointments();
+
+  const totalMonth = monthlyIncome[monthlyIncome.length - 1].income;
+  const completedCount = appointments.filter(a => a.status === 'CONFIRMED' || a.status === 'COMPLETED').length;
   const handleExport = () => {
     try {
       exportIncomeToCSV();
@@ -30,6 +32,17 @@ export default function IncomePage() {
       toast.error('Ошибка экспорта');
     }
   };
+
+  if (loading) {
+    return (
+      <div>
+        <Topbar title="Доходы" />
+        <div className="flex items-center justify-center h-96">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
