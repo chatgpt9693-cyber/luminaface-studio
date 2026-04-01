@@ -61,7 +61,11 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 z-50"
+            style={{
+              background: 'radial-gradient(circle at 30% 50%, hsl(340 45% 72% / 0.15), hsl(280 20% 0% / 0.8))',
+              backdropFilter: 'blur(8px)'
+            }}
           />
 
           {/* Drawer */}
@@ -69,8 +73,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 bottom-0 w-[280px] bg-sidebar border-r border-border z-50 flex flex-col"
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="fixed left-0 top-0 bottom-0 w-[280px] z-50 flex flex-col border-r border-border/50"
+            style={{
+              background: 'linear-gradient(135deg, hsl(280 8% 8%), hsl(280 8% 6%))',
+              boxShadow: '4px 0 24px hsl(280 20% 0% / 0.5), 1px 0 0 hsl(340 45% 72% / 0.1) inset'
+            }}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 h-14 border-b border-border">
@@ -94,9 +102,16 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </div>
 
             {/* User Info */}
-            <div className="px-4 py-4 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-primary text-base font-semibold">
+            <div className="px-4 py-4 border-b border-border/50 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl opacity-20"
+                style={{ background: 'radial-gradient(circle, hsl(340 45% 72%), transparent)' }}
+              />
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-primary text-lg font-bold flex-shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, hsl(340 45% 72% / 0.25), hsl(280 30% 70% / 0.2))',
+                    boxShadow: '0 4px 16px hsl(340 45% 72% / 0.3), 0 0 0 2px hsl(340 45% 72% / 0.2) inset'
+                  }}>
                   {user?.avatarInitials || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -106,7 +121,13 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   <p className="text-xs text-muted-foreground truncate">
                     {user?.email}
                   </p>
-                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-block mt-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(340 45% 72% / 0.15), hsl(340 45% 72% / 0.1))',
+                      borderColor: 'hsl(340 45% 72% / 0.3)',
+                      color: 'hsl(340 45% 72%)',
+                      boxShadow: '0 2px 8px hsl(340 45% 72% / 0.2)'
+                    }}>
                     {user?.role === 'MASTER' ? '👑 Мастер' : '💎 Клиент'}
                   </span>
                 </div>

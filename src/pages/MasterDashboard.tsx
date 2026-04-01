@@ -39,7 +39,7 @@ export default function MasterDashboard() {
 
   const stats = [
     { icon: CalendarCheck, label: 'Сегодня записей', value: todayAppointments.length, color: 'text-primary' },
-    { icon: TrendingUp, label: 'Выручка за март', value: `${(monthRevenue / 1000).toFixed(0)}K ₽`, color: 'text-accent' },
+    { icon: TrendingUp, label: 'Выручка за март', value: `${(monthRevenue / 1000).toFixed(0)}K Br`, color: 'text-accent' },
     { icon: Users, label: 'Всего клиентов', value: clients.length, color: 'text-blush' },
     { icon: Clock, label: 'Следующая запись', value: nextAppointment ? formatTimeMinsk(utcToMinsk(nextAppointment.dateTime)) : '—', color: 'text-lavender' },
   ];
@@ -92,7 +92,7 @@ export default function MasterDashboard() {
                 <YAxis stroke="hsl(280,8%,40%)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `${v / 1000}K`} />
                 <Tooltip
                   contentStyle={{ background: 'hsl(280,8%,7%)', border: '1px solid hsl(280,10%,16%)', borderRadius: 12, color: 'hsl(330,20%,92%)' }}
-                  formatter={(v: number) => [`${v.toLocaleString()} ₽`, 'Доход']}
+                  formatter={(v: number) => [`${v.toLocaleString()} Br`, 'Доход']}
                 />
                 <Area type="monotone" dataKey="income" stroke="hsl(340, 45%, 72%)" strokeWidth={2} fill="url(#incomeGradient)" />
               </AreaChart>

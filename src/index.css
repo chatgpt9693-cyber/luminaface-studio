@@ -6,63 +6,67 @@
 
 @layer base {
   :root {
-    --background: 280 10% 4%;
-    --foreground: 330 20% 92%;
+    --background: 280 15% 6%;
+    --foreground: 330 25% 94%;
 
-    --card: 280 8% 7%;
-    --card-foreground: 330 20% 92%;
+    --card: 280 12% 8%;
+    --card-foreground: 330 25% 94%;
 
-    --popover: 280 8% 7%;
-    --popover-foreground: 330 20% 92%;
+    --popover: 280 12% 8%;
+    --popover-foreground: 330 25% 94%;
 
-    --primary: 340 45% 72%;
-    --primary-foreground: 280 10% 4%;
+    /* Trendy 2026: Soft Peach Rose */
+    --primary: 15 85% 75%;
+    --primary-foreground: 280 15% 8%;
 
-    --secondary: 280 8% 13%;
-    --secondary-foreground: 330 20% 92%;
+    --secondary: 280 10% 14%;
+    --secondary-foreground: 330 25% 94%;
 
-    --muted: 280 6% 16%;
-    --muted-foreground: 280 8% 55%;
+    --muted: 280 8% 18%;
+    --muted-foreground: 280 10% 60%;
 
-    --accent: 280 30% 70%;
-    --accent-foreground: 280 10% 4%;
+    /* Trendy 2026: Digital Lavender */
+    --accent: 270 50% 75%;
+    --accent-foreground: 280 15% 8%;
 
-    --destructive: 0 65% 55%;
+    --destructive: 0 70% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 280 10% 16%;
-    --input: 280 10% 16%;
-    --ring: 340 45% 72%;
+    --border: 280 12% 18%;
+    --input: 280 12% 18%;
+    --ring: 15 85% 75%;
 
     --radius: 1rem;
 
-    --rose: 340 45% 72%;
-    --rose-dim: 340 30% 45%;
-    --lavender: 280 30% 70%;
-    --blush: 350 30% 85%;
-    --cream: 30 30% 93%;
-    --cream-foreground: 280 10% 10%;
+    /* Trendy 2026 Palette */
+    --rose: 15 85% 75%;
+    --rose-dim: 15 60% 55%;
+    --lavender: 270 50% 75%;
+    --peach: 25 90% 80%;
+    --sage: 140 25% 70%;
+    --cream: 35 40% 92%;
+    --cream-foreground: 280 15% 12%;
 
-    --glass-bg: 280 20% 100% / 0.04;
-    --glass-border: 340 30% 100% / 0.08;
-    --glass-hover: 340 30% 100% / 0.1;
+    --glass-bg: 280 20% 100% / 0.05;
+    --glass-border: 15 85% 75% / 0.12;
+    --glass-hover: 15 85% 75% / 0.15;
 
-    --gradient-rose: linear-gradient(135deg, hsl(340 45% 72%), hsl(280 30% 70%));
-    --gradient-warm: linear-gradient(135deg, hsl(340 45% 72%), hsl(350 50% 80%));
-    --gradient-glass: linear-gradient(135deg, hsl(280 20% 100% / 0.06), hsl(280 20% 100% / 0.02));
-    --gradient-card: linear-gradient(145deg, hsl(280 8% 9%), hsl(280 8% 5%));
+    --gradient-rose: linear-gradient(135deg, hsl(15 85% 75%), hsl(270 50% 75%));
+    --gradient-warm: linear-gradient(135deg, hsl(25 90% 80%), hsl(15 85% 75%));
+    --gradient-glass: linear-gradient(135deg, hsl(280 20% 100% / 0.08), hsl(280 20% 100% / 0.03));
+    --gradient-card: linear-gradient(145deg, hsl(280 12% 10%), hsl(280 12% 7%));
 
-    --shadow-glow: 0 0 40px -10px hsl(340 45% 72% / 0.25);
+    --shadow-glow: 0 0 40px -10px hsl(15 85% 75% / 0.35);
     --shadow-card: 0 8px 32px -8px hsl(280 20% 0% / 0.5);
 
-    --sidebar-background: 280 10% 5%;
-    --sidebar-foreground: 330 20% 92%;
-    --sidebar-primary: 340 45% 72%;
-    --sidebar-primary-foreground: 280 10% 4%;
-    --sidebar-accent: 280 8% 13%;
-    --sidebar-accent-foreground: 330 20% 92%;
-    --sidebar-border: 280 10% 12%;
-    --sidebar-ring: 340 45% 72%;
+    --sidebar-background: 280 12% 7%;
+    --sidebar-foreground: 330 25% 94%;
+    --sidebar-primary: 15 85% 75%;
+    --sidebar-primary-foreground: 280 15% 8%;
+    --sidebar-accent: 280 10% 14%;
+    --sidebar-accent-foreground: 330 25% 94%;
+    --sidebar-border: 280 12% 14%;
+    --sidebar-ring: 15 85% 75%;
   }
 }
 
@@ -84,48 +88,88 @@
 @layer components {
   .glass-card {
     @apply rounded-2xl border;
-    background: linear-gradient(135deg, hsl(280 20% 100% / 0.05), hsl(280 20% 100% / 0.02));
-    border-color: hsl(340 30% 80% / 0.08);
-    backdrop-filter: blur(20px);
-    box-shadow: var(--shadow-card);
+    background: linear-gradient(135deg, hsl(280 20% 100% / 0.06), hsl(280 20% 100% / 0.03));
+    border-color: hsl(15 85% 75% / 0.12);
+    backdrop-filter: blur(24px);
+    box-shadow: 
+      0 8px 32px -8px hsl(280 20% 0% / 0.4),
+      0 0 0 1px hsl(15 85% 75% / 0.05) inset,
+      0 2px 4px hsl(15 85% 75% / 0.1) inset;
   }
 
   .glass-card-hover {
-    @apply glass-card transition-all duration-300;
+    @apply glass-card transition-all duration-500 ease-out;
   }
   .glass-card-hover:hover {
-    border-color: hsl(340 45% 72% / 0.3);
-    box-shadow: var(--shadow-glow);
-    transform: translateY(-2px);
+    border-color: hsl(15 85% 75% / 0.35);
+    background: linear-gradient(135deg, hsl(280 20% 100% / 0.08), hsl(15 85% 75% / 0.04));
+    box-shadow: 
+      0 12px 48px -12px hsl(15 85% 75% / 0.4),
+      0 0 0 1px hsl(15 85% 75% / 0.15) inset,
+      0 4px 8px hsl(15 85% 75% / 0.15) inset;
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  .premium-card {
+    @apply rounded-3xl border;
+    background: linear-gradient(145deg, hsl(280 12% 10%), hsl(280 12% 7%));
+    border-color: hsl(15 85% 75% / 0.15);
+    box-shadow: 
+      0 20px 60px -15px hsl(280 20% 0% / 0.5),
+      0 0 0 1px hsl(15 85% 75% / 0.08) inset,
+      0 4px 12px hsl(15 85% 75% / 0.08) inset;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .premium-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, hsl(15 85% 75% / 0.1), transparent);
+    animation: shimmer 3s infinite;
   }
 
   .glow-text {
-    background: linear-gradient(135deg, hsl(340 45% 72%), hsl(280 30% 70%));
+    background: linear-gradient(135deg, hsl(25 90% 82%), hsl(15 85% 75%), hsl(270 50% 75%));
+    background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0 0 30px hsl(340 45% 72% / 0.3);
+    filter: drop-shadow(0 0 20px hsl(15 85% 75% / 0.5));
+    animation: gradient-shift 4s ease infinite;
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
 
   .glow-dot {
     @apply w-2 h-2 rounded-full;
-    background: hsl(340 45% 72%);
-    box-shadow: 0 0 12px hsl(340 45% 72% / 0.8), 0 0 24px hsl(340 45% 72% / 0.4);
+    background: linear-gradient(135deg, hsl(15 85% 75%), hsl(270 50% 75%));
+    box-shadow: 0 0 12px hsl(15 85% 75% / 0.8), 0 0 24px hsl(15 85% 75% / 0.4);
     animation: pulse-glow 2s ease-in-out infinite;
   }
 
   .stat-value {
     @apply text-3xl font-bold tracking-tight;
     font-family: 'Playfair Display', serif;
-    background: linear-gradient(135deg, hsl(350 30% 90%), hsl(340 45% 72%));
+    background: linear-gradient(135deg, hsl(25 90% 85%), hsl(15 85% 75%), hsl(270 50% 75%));
+    background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    filter: drop-shadow(0 2px 8px hsl(15 85% 75% / 0.4));
+    animation: gradient-shift 3s ease infinite;
   }
 
   .feminine-divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(340 45% 72% / 0.3), transparent);
+    background: linear-gradient(90deg, transparent, hsl(15 85% 75% / 0.4), transparent);
   }
 
   /* Enhanced animations */
@@ -158,11 +202,60 @@
 
   /* Gradient backgrounds */
   .bg-gradient-premium {
-    background: linear-gradient(135deg, hsl(340 45% 72% / 0.15), hsl(280 30% 70% / 0.1));
+    background: linear-gradient(135deg, hsl(15 85% 75% / 0.15), hsl(270 50% 75% / 0.1));
+    position: relative;
+  }
+
+  .bg-gradient-premium::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 50%, hsl(15 85% 75% / 0.15), transparent 50%);
+    animation: float 6s ease-in-out infinite;
   }
 
   .bg-gradient-soft {
-    background: linear-gradient(135deg, hsl(340 45% 72% / 0.08), hsl(280 30% 70% / 0.05));
+    background: linear-gradient(135deg, hsl(15 85% 75% / 0.08), hsl(270 50% 75% / 0.05));
+  }
+
+  /* 3D Button Effect */
+  .btn-3d {
+    position: relative;
+    transform-style: preserve-3d;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-3d::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, hsl(15 85% 75% / 0.3), transparent);
+    transform: translateZ(-1px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-3d:hover {
+    transform: translateY(-2px) translateZ(4px);
+    box-shadow: 
+      0 8px 24px -8px hsl(15 85% 75% / 0.5),
+      0 0 0 1px hsl(15 85% 75% / 0.2) inset;
+  }
+
+  .btn-3d:active {
+    transform: translateY(0) translateZ(0);
+  }
+
+  /* Floating animation for decorative elements */
+  @keyframes float-slow {
+    0%, 100% { 
+      transform: translateY(0) rotate(0deg);
+      opacity: 0.6;
+    }
+    50% { 
+      transform: translateY(-15px) rotate(2deg);
+      opacity: 0.8;
+    }
   }
 
   /* Hide scrollbar but keep functionality */

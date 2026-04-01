@@ -1,7 +1,7 @@
 import { monthlyIncome } from './data';
 
 export function exportIncomeToCSV() {
-  const headers = ['Месяц', 'Доход (₽)'];
+  const headers = ['Месяц', 'Доход (Br)'];
   const rows = monthlyIncome.map(item => [item.month, item.income.toString()]);
   
   const csvContent = [
@@ -24,7 +24,7 @@ export function exportIncomeToCSV() {
 
 export function exportIncomeToPDF() {
   // Simplified PDF export - in production use jsPDF or similar
-  const content = monthlyIncome.map(item => `${item.month}: ${item.income.toLocaleString()} ₽`).join('\n');
+  const content = monthlyIncome.map(item => `${item.month}: ${item.income.toLocaleString()} Br`).join('\n');
   const blob = new Blob([content], { type: 'text/plain' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);

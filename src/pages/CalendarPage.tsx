@@ -275,7 +275,7 @@ export default function CalendarPage() {
                           </div>
                           <p className="text-base font-medium text-foreground mb-1">{apt.clientName}</p>
                           <p className="text-sm text-muted-foreground">{apt.serviceName}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{apt.duration} мин • {apt.price} ₽</p>
+                          <p className="text-xs text-muted-foreground mt-1">{apt.duration} мин • {apt.price} Br</p>
                         </div>
                         <div className="flex flex-col gap-1">
                           {apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED' && (

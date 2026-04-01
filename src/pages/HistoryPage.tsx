@@ -102,7 +102,7 @@ export default function HistoryPage() {
                           )}
                         </div>
                         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                          <span className="text-sm sm:text-base font-bold text-primary whitespace-nowrap">{visit.price.toLocaleString()} ₽</span>
+                          <span className="text-sm sm:text-base font-bold text-primary whitespace-nowrap">{visit.price.toLocaleString()} Br</span>
                           <span className="text-xs text-muted-foreground">{visit.duration} мин</span>
                           <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${
                             isExpanded ? 'rotate-180' : ''
@@ -129,7 +129,7 @@ export default function HistoryPage() {
                             </div>
                             <div className="p-3 rounded-xl bg-secondary/50">
                               <p className="text-xs text-muted-foreground mb-1">Стоимость</p>
-                              <p className="text-sm font-semibold text-primary">{visit.price.toLocaleString()} ₽</p>
+                              <p className="text-sm font-semibold text-primary">{visit.price.toLocaleString()} Br</p>
                             </div>
                           </div>
                           {visit.notes && (
@@ -176,7 +176,7 @@ export default function HistoryPage() {
                       </div>
                       <div className="p-3 rounded-xl bg-secondary/50">
                         <p className="text-xs text-muted-foreground mb-1">Стоимость</p>
-                        <p className="text-sm font-semibold text-primary">{activeVisit.price.toLocaleString()} ₽</p>
+                        <p className="text-sm font-semibold text-primary">{activeVisit.price.toLocaleString()} Br</p>
                       </div>
                     </div>
                     {activeVisit.notes && (

@@ -109,7 +109,7 @@ export default function ServicesPage() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Banknote className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">{service.price.toLocaleString()} ₽</span>
+                  <span className="text-sm font-semibold text-primary">{service.price.toLocaleString()} Br</span>
                 </div>
               </div>
             </motion.div>

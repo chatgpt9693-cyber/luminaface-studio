@@ -280,7 +280,7 @@ export default function BookingPage() {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-xl font-bold text-primary mb-1">{s.price.toLocaleString()} ₽</p>
+                      <p className="text-xl font-bold text-primary mb-1">{s.price.toLocaleString()} Br</p>
                       <p className="text-xs text-muted-foreground">за процедуру</p>
                     </div>
                   </div>
@@ -423,7 +423,7 @@ export default function BookingPage() {
                   </div>
                   <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
                     <p className="text-xs text-primary mb-1">Стоимость</p>
-                    <p className="text-lg font-bold text-primary">{service.price.toLocaleString()} ₽</p>
+                    <p className="text-lg font-bold text-primary">{service.price.toLocaleString()} Br</p>
                   </div>
                 </div>
               </div>

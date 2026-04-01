@@ -71,7 +71,7 @@ export default function ServiceDialog({ open, onOpenChange, service, onSave }: S
               />
             </div>
             <div>
-              <Label htmlFor="price">Цена (₽)</Label>
+              <Label htmlFor="price">Цена (Br)</Label>
               <Input
                 id="price"
                 type="number"

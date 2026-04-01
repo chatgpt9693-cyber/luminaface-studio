@@ -53,7 +53,7 @@ export default function IncomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <motion.div variants={item} className="glass-card p-5">
             <p className="text-xs text-muted-foreground mb-1">Доход за март</p>
-            <p className="stat-value text-2xl sm:text-3xl">{totalMonth.toLocaleString()} ₽</p>
+            <p className="stat-value text-2xl sm:text-3xl">{totalMonth.toLocaleString()} Br</p>
           </motion.div>
           <motion.div variants={item} className="glass-card p-5">
             <p className="text-xs text-muted-foreground mb-1">Процедур проведено</p>
@@ -61,7 +61,7 @@ export default function IncomePage() {
           </motion.div>
           <motion.div variants={item} className="glass-card p-5">
             <p className="text-xs text-muted-foreground mb-1">Средний чек</p>
-            <p className="stat-value text-2xl sm:text-3xl">{Math.round(totalMonth / (completedCount || 1)).toLocaleString()} ₽</p>
+            <p className="stat-value text-2xl sm:text-3xl">{Math.round(totalMonth / (completedCount || 1)).toLocaleString()} Br</p>
           </motion.div>
         </div>
 
@@ -82,7 +82,7 @@ export default function IncomePage() {
                 <YAxis stroke="hsl(280,8%,40%)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `${v / 1000}K`} />
                 <Tooltip
                   contentStyle={{ background: 'hsl(280,8%,7%)', border: '1px solid hsl(280,10%,16%)', borderRadius: 12, color: 'hsl(330,20%,92%)' }}
-                  formatter={(v: number) => [`${v.toLocaleString()} ₽`, 'Доход']}
+                  formatter={(v: number) => [`${v.toLocaleString()} Br`, 'Доход']}
                 />
                 <Bar dataKey="income" fill="hsl(340, 45%, 72%)" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -100,7 +100,7 @@ export default function IncomePage() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: 'hsl(280,8%,7%)', border: '1px solid hsl(280,10%,16%)', borderRadius: 12, color: 'hsl(330,20%,92%)' }}
-                  formatter={(v: number) => [`${v.toLocaleString()} ₽`]}
+                  formatter={(v: number) => [`${v.toLocaleString()} Br`]}
                 />
               </PieChart>
             </ResponsiveContainer>

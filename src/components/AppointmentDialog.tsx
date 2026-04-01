@@ -130,7 +130,7 @@ export default function AppointmentDialog({ open, onOpenChange, appointment, def
               <SelectContent>
                 {services.map(service => (
                   <SelectItem key={service.id} value={service.id}>
-                    {service.name} ({service.duration} мин, {service.price} ₽)
+                    {service.name} ({service.duration} мин, {service.price} Br)
                   </SelectItem>
                 ))}
               </SelectContent>
