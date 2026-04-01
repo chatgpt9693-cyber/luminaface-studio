@@ -104,12 +104,14 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-shadow: 0 0 30px hsl(340 45% 72% / 0.3);
   }
 
   .glow-dot {
     @apply w-2 h-2 rounded-full;
     background: hsl(340 45% 72%);
-    box-shadow: 0 0 8px hsl(340 45% 72% / 0.6);
+    box-shadow: 0 0 12px hsl(340 45% 72% / 0.8), 0 0 24px hsl(340 45% 72% / 0.4);
+    animation: pulse-glow 2s ease-in-out infinite;
   }
 
   .stat-value {
@@ -124,5 +126,51 @@
   .feminine-divider {
     height: 1px;
     background: linear-gradient(90deg, transparent, hsl(340 45% 72% / 0.3), transparent);
+  }
+
+  /* Enhanced animations */
+  @keyframes float {
+    0%, 100% { 
+      transform: translateY(0px);
+      opacity: 0.6;
+    }
+    50% { 
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { 
+      opacity: 0.6;
+      box-shadow: 0 0 12px hsl(340 45% 72% / 0.8), 0 0 24px hsl(340 45% 72% / 0.4);
+    }
+    50% { 
+      opacity: 1;
+      box-shadow: 0 0 16px hsl(340 45% 72% / 1), 0 0 32px hsl(340 45% 72% / 0.6);
+    }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Gradient backgrounds */
+  .bg-gradient-premium {
+    background: linear-gradient(135deg, hsl(340 45% 72% / 0.15), hsl(280 30% 70% / 0.1));
+  }
+
+  .bg-gradient-soft {
+    background: linear-gradient(135deg, hsl(340 45% 72% / 0.08), hsl(280 30% 70% / 0.05));
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

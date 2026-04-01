@@ -36,43 +36,74 @@ export default function HistoryPage() {
     <div>
       <Topbar title="История процедур" />
       <div className="p-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Ваши процедуры
+          </h1>
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 rounded-full bg-primary/15 border border-primary/25 text-sm text-primary font-medium">
+              ✨ {completedVisits.length} завершено
+            </div>
+            {completedVisits.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Последняя: {new Date(completedVisits[0].dateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+              </p>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: visit list */}
           <motion.div variants={container} initial="hidden" animate="show" className="space-y-3">
-            <p className="text-sm text-muted-foreground">{completedVisits.length} процедур</p>
             {completedVisits.length === 0 ? (
-              <div className="glass-card p-8 text-center">
-                <p className="text-sm text-muted-foreground">У вас пока нет завершенных процедур</p>
+              <div className="glass-card p-12 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">📋</span>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Пока нет истории</h3>
+                <p className="text-sm text-muted-foreground">Ваши завершенные процедуры появятся здесь</p>
               </div>
             ) : (
               completedVisits.map(visit => {
                 const minskDate = utcToMinsk(visit.dateTime);
                 const dateStr = formatDateMinsk(minskDate);
                 const timeStr = formatTimeMinsk(minskDate);
+                const isExpanded = expandedVisit === visit.id;
                 
                 return (
                   <motion.div key={visit.id} variants={item}>
                     <button
-                      onClick={() => setExpandedVisit(expandedVisit === visit.id ? null : visit.id)}
-                      className={`w-full text-left glass-card p-4 transition-all ${
-                        expandedVisit === visit.id ? 'border-primary/30' : 'hover:border-border'
+                      onClick={() => setExpandedVisit(isExpanded ? null : visit.id)}
+                      className={`w-full text-left rounded-2xl border p-5 transition-all ${
+                        isExpanded 
+                          ? 'bg-gradient-to-br from-primary/15 to-primary/5 border-primary/40 shadow-lg shadow-primary/10' 
+                          : 'glass-card hover:border-primary/20'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{visit.serviceName}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            {' · '}{timeStr} · {visit.duration} мин
-                          </p>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-lg">✨</span>
+                            <h3 className="text-base font-semibold text-foreground truncate">{visit.serviceName}</h3>
+                          </div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-1 rounded-lg bg-secondary/60 text-xs text-muted-foreground">
+                              📅 {new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                            <span className="px-2 py-1 rounded-lg bg-secondary/60 text-xs text-muted-foreground">
+                              🕐 {timeStr}
+                            </span>
+                          </div>
                           {visit.notes && (
-                            <p className="text-xs text-muted-foreground/70 mt-1 italic">{visit.notes}</p>
+                            <p className="text-xs text-muted-foreground/80 italic mt-2 line-clamp-2">{visit.notes}</p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-sm font-semibold text-primary">{visit.price.toLocaleString()} ₽</span>
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                          <span className="text-base font-bold text-primary">{visit.price.toLocaleString()} ₽</span>
+                          <span className="text-xs text-muted-foreground">{visit.duration} мин</span>
                           <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${
-                            expandedVisit === visit.id ? 'rotate-180' : ''
+                            isExpanded ? 'rotate-180' : ''
                           }`} />
                         </div>
                       </div>
@@ -83,16 +114,59 @@ export default function HistoryPage() {
             )}
           </motion.div>
 
-          {/* Right: face model */}
-          <div className="glass-card p-5 sticky top-6 self-start">
-            <p className="text-sm font-medium text-muted-foreground mb-4">
-              {activeVisit
-                ? `Процедура: ${new Date(formatDateMinsk(utcToMinsk(activeVisit.dateTime))).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
-                : 'Выберите процедуру'}
-            </p>
-            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
-              История зон лица будет доступна в следующей версии
-            </div>
+          {/* Right: details card */}
+          <div className="glass-card p-6 sticky top-6 self-start">
+            {activeVisit ? (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                    <span className="text-xl">💆‍♀️</span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Детали процедуры</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {new Date(formatDateMinsk(utcToMinsk(activeVisit.dateTime))).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3 mb-6">
+                  <div className="p-3 rounded-xl bg-secondary/50">
+                    <p className="text-xs text-muted-foreground mb-1">Процедура</p>
+                    <p className="text-sm font-semibold text-foreground">{activeVisit.serviceName}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-secondary/50">
+                      <p className="text-xs text-muted-foreground mb-1">Длительность</p>
+                      <p className="text-sm font-semibold text-foreground">{activeVisit.duration} мин</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-secondary/50">
+                      <p className="text-xs text-muted-foreground mb-1">Стоимость</p>
+                      <p className="text-sm font-semibold text-primary">{activeVisit.price.toLocaleString()} ₽</p>
+                    </div>
+                  </div>
+                  {activeVisit.notes && (
+                    <div className="p-3 rounded-xl bg-secondary/50">
+                      <p className="text-xs text-muted-foreground mb-1">Заметки</p>
+                      <p className="text-sm text-foreground">{activeVisit.notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/15">
+                  <p className="text-xs text-center text-muted-foreground">
+                    💡 Визуализация обработанных зон будет доступна в следующей версии
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">👈</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Выберите процедуру для просмотра деталей</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
