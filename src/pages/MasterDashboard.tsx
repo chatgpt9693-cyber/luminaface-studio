@@ -6,6 +6,7 @@ import { useAppointments } from '@/hooks/useAppointments';
 import { useClients } from '@/hooks/useClients';
 import { monthlyIncome } from '@/lib/data';
 import { utcToMinsk, formatTimeMinsk, formatDateMinsk } from '@/lib/timezone';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const container = {
   hidden: {},
@@ -17,6 +18,7 @@ const item = {
 };
 
 export default function MasterDashboard() {
+  const isMobile = useIsMobile();
   const { appointments, loading: appointmentsLoading } = useAppointments();
   const { clients, loading: clientsLoading } = useClients();
 
@@ -56,29 +58,29 @@ export default function MasterDashboard() {
   }
 
   return (
-    <div>
+    <div className={isMobile ? 'min-h-screen bg-background' : ''}>
       <Topbar title="Дашборд" />
-      <motion.div variants={container} initial="hidden" animate="show" className="p-6 space-y-6">
+      <motion.div variants={container} initial="hidden" animate="show" className={isMobile ? 'pt-14 pb-4 px-4 space-y-4' : 'p-6 space-y-6'}>
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {stats.map((s, i) => (
-            <motion.div key={i} variants={item} className="glass-card-hover p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <s.icon className={`w-5 h-5 ${s.color}`} />
+            <motion.div key={i} variants={item} className="glass-card-hover p-4 sm:p-5">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                  <s.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${s.color}`} />
                 </div>
-                <span className="text-sm text-muted-foreground">{s.label}</span>
+                <span className="text-xs sm:text-sm text-muted-foreground leading-tight">{s.label}</span>
               </div>
-              <p className="stat-value">{s.value}</p>
+              <p className="stat-value text-xl sm:text-3xl">{s.value}</p>
             </motion.div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Income chart */}
-          <motion.div variants={item} className="glass-card p-5 lg:col-span-2">
+          <motion.div variants={item} className="glass-card p-4 sm:p-5 lg:col-span-2">
             <h3 className="text-sm font-medium text-muted-foreground mb-4">Динамика дохода</h3>
-            <ResponsiveContainer width="100%" height={240}>
+            <ResponsiveContainer width="100%" height={isMobile ? 200 : 240}>
               <AreaChart data={monthlyIncome}>
                 <defs>
                   <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -86,8 +88,8 @@ export default function MasterDashboard() {
                     <stop offset="100%" stopColor="hsl(280, 30%, 70%)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="month" stroke="hsl(280,8%,40%)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(280,8%,40%)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={v => `${v / 1000}K`} />
+                <XAxis dataKey="month" stroke="hsl(280,8%,40%)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="hsl(280,8%,40%)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `${v / 1000}K`} />
                 <Tooltip
                   contentStyle={{ background: 'hsl(280,8%,7%)', border: '1px solid hsl(280,10%,16%)', borderRadius: 12, color: 'hsl(330,20%,92%)' }}
                   formatter={(v: number) => [`${v.toLocaleString()} ₽`, 'Доход']}
@@ -98,7 +100,7 @@ export default function MasterDashboard() {
           </motion.div>
 
           {/* Today's schedule */}
-          <motion.div variants={item} className="glass-card p-5">
+          <motion.div variants={item} className="glass-card p-4 sm:p-5">
             <h3 className="text-sm font-medium text-muted-foreground mb-4">Расписание на сегодня</h3>
             <div className="space-y-3">
               {todayAppointments.length === 0 ? (
@@ -114,7 +116,7 @@ export default function MasterDashboard() {
                         <p className="text-sm font-medium text-foreground truncate">{a.clientName}</p>
                         <p className="text-xs text-muted-foreground">{time} • {a.duration} мин</p>
                       </div>
-                      <span className={`text-xs px-2.5 py-1 rounded-full ${
+                      <span className={`text-xs px-2.5 py-1 rounded-full whitespace-nowrap ${
                         a.status === 'CONFIRMED' ? 'bg-primary/10 text-primary' : 
                         a.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' :
                         a.status === 'CANCELLED' ? 'bg-red-500/10 text-red-500' :

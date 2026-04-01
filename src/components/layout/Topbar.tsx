@@ -1,6 +1,14 @@
 import { Bell, Search } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import MobileHeader from './MobileHeader';
 
 export default function Topbar({ title }: { title: string }) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileHeader title={title} />;
+  }
+
   return (
     <header className="h-16 flex items-center justify-between px-6 border-b border-border">
       <h1 className="text-xl font-semibold text-foreground">{title}</h1>

@@ -318,43 +318,60 @@ function FaceGLB({ activeZone, hoveredZone, onZoneHover, onZoneClick, debugMode,
 // Preload
 useGLTF.preload('/models/face.glb');
 
-// ─── Tooltip overlay ──────────────────────────────────────────────────────────
-interface TooltipProps {
+// ─── Zone description panel (below canvas) ────────────────────────────────────
+interface ZoneDescriptionProps {
   zone: ZoneMeta | null;
   isMobile: boolean;
 }
-function ZoneTooltip({ zone, isMobile }: TooltipProps) {
+function ZoneDescription({ zone, isMobile }: ZoneDescriptionProps) {
   return (
-    <AnimatePresence>
-      {zone && (
+    <div className="mt-4">
+      {zone ? (
         <motion.div
           key={zone.id}
-          initial={{ opacity: 0, y: 8, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 4, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-          className={`absolute left-1/2 -translate-x-1/2 pointer-events-none z-10 ${
-            isMobile ? 'bottom-28' : 'bottom-4'
-          }`}
-          style={{ minWidth: isMobile ? 280 : 200, maxWidth: isMobile ? '90%' : 'auto' }}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -5 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          className="rounded-2xl border border-primary/30 p-4"
+          style={{
+            background: 'linear-gradient(135deg, hsl(340 45% 72% / 0.08), hsl(280 30% 70% / 0.05))',
+            backdropFilter: 'blur(20px)',
+          }}
         >
-          <div
-            className="rounded-2xl border border-primary/30 px-4 py-3 text-center"
-            style={{
-              background: 'linear-gradient(135deg, hsl(340 45% 72% / 0.18), hsl(280 30% 70% / 0.12))',
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 8px 32px -8px hsl(340 45% 72% / 0.35)',
-            }}
-          >
-            <p className="text-sm font-bold text-primary mb-0.5">{zone.label}</p>
-            <p className="text-xs text-muted-foreground">{zone.description}</p>
-            <div className="mt-2 px-2 py-1 rounded-lg bg-primary/10 inline-block">
-              <p className="text-xs text-primary font-medium">✨ {zone.benefit}</p>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">✨</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-primary mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                {zone.label}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-2">{zone.description}</p>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 inline-flex">
+                <span className="text-primary text-sm">💎</span>
+                <p className="text-xs text-primary font-medium">{zone.benefit}</p>
+              </div>
             </div>
           </div>
         </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="rounded-2xl border border-border/50 p-4 text-center"
+          style={{
+            background: 'linear-gradient(135deg, hsl(280 20% 100% / 0.03), hsl(280 20% 100% / 0.01))',
+            backdropFilter: 'blur(16px)',
+          }}
+        >
+          <p className="text-sm text-muted-foreground">
+            ✨ Нажмите на зону для подробной информации
+          </p>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </div>
   );
 }
 
@@ -586,29 +603,31 @@ export default function FaceModel({
     : (clickedZone ? ZONE_META.find(z => z.id === clickedZone) ?? null : null);
 
   return (
-    <div 
-      className={`relative select-none w-full ${className}`}
-      style={isMobile ? { aspectRatio: '3/4', maxHeight: '70vh' } : { height }}
-    >
-      {/* Legend */}
-      {showLegend && (
-        <ZoneLegend
-          activeZone={effectiveActive}
-          onSelect={handleLegendSelect}
-          isMobile={isMobile}
-        />
-      )}
+    <div className={`relative select-none w-full ${className}`}>
+      {/* 3D Canvas container */}
+      <div 
+        className="relative"
+        style={isMobile ? { aspectRatio: '3/4', maxHeight: '70vh' } : { height }}
+      >
+        {/* Legend */}
+        {showLegend && (
+          <ZoneLegend
+            activeZone={effectiveActive}
+            onSelect={handleLegendSelect}
+            isMobile={isMobile}
+          />
+        )}
 
-      {/* Mode badge */}
-      <div className="absolute top-3 left-3 z-10">
-        <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
-          {mode === 'demo' ? '✦ Интерактивно' : '📍 История'}
-        </span>
-      </div>
+        {/* Mode badge */}
+        <div className="absolute top-3 left-3 z-10">
+          <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+            {mode === 'demo' ? '✦ Интерактивно' : '📍 История'}
+          </span>
+        </div>
 
-      {/* Calibration UI - compact top-right panel */}
-      {calibrationMode && currentCalibrationZone && (
-        <div className="absolute top-16 right-3 z-20 w-64">
+        {/* Calibration UI - compact top-right panel */}
+        {calibrationMode && currentCalibrationZone && (
+          <div className="absolute top-16 right-3 z-20 w-64">
           <motion.div
             initial={{ x: 20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -740,9 +759,12 @@ export default function FaceModel({
           zoomSpeed={0.6}
         />
       </Canvas>
+      </div>
 
-      {/* HTML tooltip */}
-      <ZoneTooltip zone={tooltipMeta} isMobile={isMobile} />
+      {/* Zone description panel - below canvas */}
+      <AnimatePresence mode="wait">
+        <ZoneDescription zone={tooltipMeta} isMobile={isMobile} />
+      </AnimatePresence>
     </div>
   );
 }

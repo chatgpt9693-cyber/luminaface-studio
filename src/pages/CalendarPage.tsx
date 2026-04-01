@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Trash2, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, Check, X, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import Topbar from '@/components/layout/Topbar';
 import AppointmentDialog from '@/components/AppointmentDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAppointments } from '@/hooks/useAppointments';
 import { formatDateMinsk, formatTimeMinsk, utcToMinsk, getTodayMinsk } from '@/lib/timezone';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Appointment } from '@/lib/data';
 
 const hours = Array.from({ length: 24 }, (_, i) => i + 9); // 9:00 - 20:30 (12 часов * 2 слота)
@@ -57,6 +58,7 @@ const serviceColors: Record<string, string> = {
 };
 
 export default function CalendarPage() {
+  const isMobile = useIsMobile();
   const { appointments, loading, createAppointment, updateAppointment, deleteAppointment } = useAppointments();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
@@ -64,8 +66,6 @@ export default function CalendarPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => getMonday(new Date()));
-  
-  const days = getWeekDays(currentWeekStart);
 
   const getAppointmentForSlot = (slotIdx: number) => {
     const dayIdx = Math.floor(slotIdx / 24);
@@ -73,7 +73,7 @@ export default function CalendarPage() {
     const hour = Math.floor(timeSlot / 2) + 9;
     const minute = (timeSlot % 2) * 30;
     
-    const targetDate = days[dayIdx].dateStr;
+    const targetDate = weekDays[dayIdx].dateStr;
     
     const found = appointments.find(a => {
       // Конвертируем UTC время из БД в локальное время Минска
@@ -107,7 +107,7 @@ export default function CalendarPage() {
     const hour = Math.floor(timeSlot / 2) + 9;
     const minute = (timeSlot % 2) * 30;
     
-    const date = days[dayIdx].dateStr;
+    const date = weekDays[dayIdx].dateStr;
     const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
     console.log('CalendarPage slot clicked:', { date, time, slotIdx, dayIdx, timeSlot, hour, minute });
@@ -196,6 +196,154 @@ export default function CalendarPage() {
   const goToToday = () => {
     setCurrentWeekStart(getMonday(new Date()));
   };
+
+  // Get days for both mobile and desktop
+  const weekDays = getWeekDays(currentWeekStart);
+
+  // Mobile view: list of appointments grouped by date
+  if (isMobile) {
+    const sortedAppointments = [...appointments].sort((a, b) => 
+      new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+    );
+
+    const groupedByDate = sortedAppointments.reduce((acc, apt) => {
+      const minskDate = utcToMinsk(apt.dateTime);
+      const dateStr = formatDateMinsk(minskDate);
+      if (!acc[dateStr]) acc[dateStr] = [];
+      acc[dateStr].push(apt);
+      return acc;
+    }, {} as Record<string, Appointment[]>);
+
+    return (
+      <div className="min-h-screen bg-background">
+        <Topbar title="Календарь" />
+        <div className="pt-14 pb-4 px-4 space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">Записи</h2>
+            <button 
+              onClick={handleNewAppointment}
+              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
+            >
+              + Новая
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          ) : Object.keys(groupedByDate).length === 0 ? (
+            <div className="glass-card p-12 text-center">
+              <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">Нет записей</p>
+            </div>
+          ) : (
+            Object.entries(groupedByDate).map(([dateStr, apts]) => (
+              <div key={dateStr} className="space-y-2">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+                  {new Date(dateStr).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </h3>
+                {apts.map(apt => {
+                  const minskDate = utcToMinsk(apt.dateTime);
+                  const time = formatTimeMinsk(minskDate);
+                  return (
+                    <motion.div
+                      key={apt.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`glass-card p-4 ${
+                        apt.status === 'CANCELLED' ? 'opacity-60' : ''
+                      }`}
+                      onClick={() => handleAppointmentClick(apt)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold text-primary">{time}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              apt.status === 'CONFIRMED' ? 'bg-primary/10 text-primary' :
+                              apt.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' :
+                              apt.status === 'CANCELLED' ? 'bg-red-500/10 text-red-500' :
+                              'bg-accent/10 text-accent'
+                            }`}>
+                              {apt.status === 'CONFIRMED' ? 'Подтверждён' :
+                               apt.status === 'COMPLETED' ? 'Завершён' :
+                               apt.status === 'CANCELLED' ? 'Отменён' :
+                               'Ожидание'}
+                            </span>
+                          </div>
+                          <p className="text-base font-medium text-foreground mb-1">{apt.clientName}</p>
+                          <p className="text-sm text-muted-foreground">{apt.serviceName}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{apt.duration} мин • {apt.price} ₽</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          {apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED' && (
+                            <>
+                              <button
+                                onClick={(e) => handleCompleteAppointment(apt, e)}
+                                className="w-8 h-8 rounded-lg bg-green-500/20 text-green-500 flex items-center justify-center hover:bg-green-500/30"
+                                title="Завершить"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => handleCancelAppointment(apt, e)}
+                                className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-500 flex items-center justify-center hover:bg-orange-500/30"
+                                title="Отменить"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={(e) => handleDeleteClick(apt, e)}
+                            className="w-8 h-8 rounded-lg bg-destructive/20 text-destructive flex items-center justify-center hover:bg-destructive/30"
+                            title="Удалить"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
+
+        <AppointmentDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          appointment={selectedAppointment}
+          defaultDate={selectedSlot?.date}
+          defaultTime={selectedSlot?.time}
+          onSave={handleSave}
+        />
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Удалить запись?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Вы уверены, что хотите удалить запись для {deletingAppointment?.clientName}? Это действие нельзя отменить.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Удалить
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
+  // Desktop view: calendar grid
+  const days = weekDays;
 
   return (
     <div>

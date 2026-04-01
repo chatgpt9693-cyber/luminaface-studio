@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Search, Filter, Plus, Pencil, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Topbar from '@/components/layout/Topbar';
 import ClientDialog from '@/components/ClientDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useClients } from '@/hooks/useClients';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Client } from '@/lib/data';
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } };
 
 export default function ClientsPage() {
+  const isMobile = useIsMobile();
   const { clients, loading, createClient, updateClient, deleteClient } = useClients();
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -70,6 +72,119 @@ export default function ClientsPage() {
     setEditingClient(null);
     setDialogOpen(true);
   };
+
+  // Mobile view
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Topbar title="Клиенты" />
+        <div className="pt-14 pb-4 px-4 space-y-4">
+          {/* Search */}
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                placeholder="Поиск..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <button 
+              onClick={handleAddNew}
+              className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          ) : filteredClients.length === 0 ? (
+            <div className="glass-card p-12 text-center">
+              <User className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">
+                {searchQuery ? 'Клиенты не найдены' : 'Нет клиентов'}
+              </p>
+            </div>
+          ) : (
+            <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
+              {filteredClients.map(client => (
+                <motion.div
+                  key={client.id}
+                  variants={item}
+                  className="glass-card p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-sm font-semibold flex-shrink-0">
+                      {client.fullName.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-semibold text-foreground mb-1">{client.fullName}</h3>
+                      <p className="text-sm text-muted-foreground mb-1">{client.phone}</p>
+                      <p className="text-xs text-muted-foreground">{client.email}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-xs text-muted-foreground">
+                          Визитов: <span className="text-primary font-medium">{client.totalVisits}</span>
+                        </span>
+                        {client.lastVisit && (
+                          <span className="text-xs text-muted-foreground">
+                            Последний: {client.lastVisit}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => handleEdit(client)}
+                        className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(client)}
+                        className="w-8 h-8 rounded-lg bg-destructive/20 text-destructive flex items-center justify-center hover:bg-destructive/30"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </div>
+
+        <ClientDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          client={editingClient}
+          onSave={handleSave}
+        />
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Удалить клиента?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Вы уверены, что хотите удалить клиента "{deletingClient?.fullName}"? Это действие нельзя отменить.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Удалить
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
+  // Desktop view
 
   return (
     <div>
