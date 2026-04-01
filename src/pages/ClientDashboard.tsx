@@ -1,10 +1,13 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarPlus, Clock, Sparkles } from 'lucide-react';
+import { CalendarPlus, Clock, Sparkles, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '@/components/layout/Topbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
+import { useNotificationSettings } from '@/hooks/useNotificationSettings';
+import { supabase } from '@/lib/supabase';
+import { CLIENT_TAGS } from '@/lib/clientExtensions';
 import { utcToMinsk, formatTimeMinsk, formatDateMinsk } from '@/lib/timezone';
 import type { FaceZone } from '@/components/FaceModel';
 
@@ -20,7 +23,37 @@ export default function ClientDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { appointments, loading } = useAppointments();
+  const { settings: notificationSettings } = useNotificationSettings();
   const [selectedZone, setSelectedZone] = useState<FaceZone | null>(null);
+  const [clientTags, setClientTags] = useState<string[]>([]);
+  const [clientDiscount, setClientDiscount] = useState<number>(0);
+
+  const isTelegramConnected = notificationSettings?.telegramEnabled && notificationSettings?.telegramChatId;
+
+  // Загружаем данные клиента
+  useEffect(() => {
+    const loadClientData = async () => {
+      if (!user || !supabase) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('tags, discount')
+          .eq('email', user.email)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setClientTags(data.tags || []);
+          setClientDiscount(data.discount || 0);
+        }
+      } catch (error) {
+        console.error('Error loading client data:', error);
+      }
+    };
+
+    loadClientData();
+  }, [user]);
 
   // Находим ближайшую подтвержденную запись
   const now = new Date();
@@ -88,13 +121,46 @@ export default function ClientDashboard() {
               </h2>
               <p className="text-sm sm:text-base text-foreground/90 mb-4 sm:mb-5 font-light">Ваша кожа заслуживает лучшего</p>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-primary/30 text-xs sm:text-sm text-primary font-medium whitespace-nowrap backdrop-blur-sm"
-                  style={{
-                    background: 'linear-gradient(135deg, hsl(340 45% 72% / 0.2), hsl(340 45% 72% / 0.1))',
-                    boxShadow: '0 4px 12px hsl(340 45% 72% / 0.2), 0 0 0 1px hsl(340 45% 72% / 0.2) inset'
-                  }}>
-                  💎 Premium клиент
-                </div>
+                {/* Отображаем реальные теги клиента */}
+                {clientTags.filter(tag => ['VIP', 'REGULAR', 'NEW'].includes(tag)).map(tag => {
+                  const tagInfo = CLIENT_TAGS.find(t => t.value === tag);
+                  if (!tagInfo) return null;
+                  
+                  const emoji = tag === 'VIP' ? '👑' : tag === 'REGULAR' ? '⭐' : '✨';
+                  const label = tag === 'VIP' ? 'VIP клиент' : tag === 'REGULAR' ? 'Постоянный клиент' : 'Новый клиент';
+                  
+                  return (
+                    <div 
+                      key={tag}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border text-xs sm:text-sm font-medium whitespace-nowrap backdrop-blur-sm ${tagInfo.color}`}
+                      style={{
+                        background: 'linear-gradient(135deg, hsl(340 45% 72% / 0.2), hsl(340 45% 72% / 0.1))',
+                        boxShadow: '0 4px 12px hsl(340 45% 72% / 0.2), 0 0 0 1px hsl(340 45% 72% / 0.2) inset'
+                      }}
+                    >
+                      {emoji} {label}
+                    </div>
+                  );
+                })}
+                
+                {/* Если нет тегов, показываем общий статус */}
+                {clientTags.filter(tag => ['VIP', 'REGULAR', 'NEW'].includes(tag)).length === 0 && (
+                  <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-primary/30 text-xs sm:text-sm text-primary font-medium whitespace-nowrap backdrop-blur-sm"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(340 45% 72% / 0.2), hsl(340 45% 72% / 0.1))',
+                      boxShadow: '0 4px 12px hsl(340 45% 72% / 0.2), 0 0 0 1px hsl(340 45% 72% / 0.2) inset'
+                    }}>
+                    💎 Клиент
+                  </div>
+                )}
+                
+                {/* Скидка если есть */}
+                {clientDiscount > 0 && (
+                  <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-green-500/20 border border-green-500/30 text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium whitespace-nowrap backdrop-blur-sm">
+                    🎁 Скидка {clientDiscount}%
+                  </div>
+                )}
+                
                 <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-secondary/80 backdrop-blur-sm text-xs sm:text-sm text-muted-foreground whitespace-nowrap border border-border/50">
                   {totalVisits} процедур
                 </div>
@@ -199,6 +265,33 @@ export default function ClientDashboard() {
 
           {/* Quick actions & Stats - Enhanced */}
           <motion.div variants={item} className="space-y-4">
+            {/* Telegram notification banner if not connected */}
+            {!isTelegramConnected && (
+              <div className="relative overflow-hidden rounded-2xl border border-blue-500/35 p-4" style={{
+                background: 'linear-gradient(145deg, hsl(220 90% 60% / 0.15), hsl(220 90% 50% / 0.1))',
+                backdropFilter: 'blur(24px)',
+                boxShadow: '0 8px 24px -8px hsl(220 90% 50% / 0.3)'
+              }}>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                    <Bell className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-foreground mb-1">Включите уведомления</h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Получайте напоминания о записях в Telegram
+                    </p>
+                    <button
+                      onClick={() => navigate('/client/notifications')}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors"
+                    >
+                      Подключить
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* CTA Button - More prominent with 3D effect */}
             <div className="relative overflow-hidden rounded-2xl border border-primary/35 p-5 sm:p-6" style={{
               background: 'linear-gradient(145deg, hsl(340 45% 72% / 0.18), hsl(280 30% 70% / 0.12))',

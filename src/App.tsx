@@ -13,9 +13,11 @@ import CalendarPage from "@/pages/CalendarPage";
 import ClientsPage from "@/pages/ClientsPage";
 import ServicesPage from "@/pages/ServicesPage";
 import IncomePage from "@/pages/IncomePage";
+import NotificationsPage from "@/pages/NotificationsPage";
 import ClientDashboard from "@/pages/ClientDashboard";
 import BookingPage from "@/pages/BookingPage";
 import HistoryPage from "@/pages/HistoryPage";
+import AboutServicePage from "@/pages/AboutServicePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,13 +63,16 @@ const App = () => (
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/income" element={<IncomePage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
             
             {/* Client routes */}
             <Route element={<ProtectedRoute allowedRoles={['CLIENT']}><AppLayout /></ProtectedRoute>}>
               <Route path="/client" element={<ClientDashboard />} />
+              <Route path="/client/about" element={<AboutServicePage />} />
               <Route path="/client/booking" element={<BookingPage />} />
               <Route path="/client/history" element={<HistoryPage />} />
+              <Route path="/client/notifications" element={<NotificationsPage />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />

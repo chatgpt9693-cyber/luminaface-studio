@@ -62,7 +62,14 @@ export function useClients() {
         avatarUrl: client.avatar_url,
         lastVisit: client.last_visit,
         totalVisits: client.total_visits,
-      }));
+        // Расширенные поля
+        birthday: client.birthday,
+        preferences: client.preferences || [],
+        allergies: client.allergies,
+        tags: client.tags || [],
+        discount: client.discount || 0,
+        notes: client.notes,
+      } as any));
 
       console.log('Formatted clients:', formattedClients);
       setClients(formattedClients);
@@ -77,15 +84,26 @@ export function useClients() {
     if (!user || !supabase) return;
 
     try {
+      const insertData: any = {
+        master_id: user.id,
+        full_name: clientData.fullName,
+        phone: clientData.phone,
+        email: clientData.email,
+        total_visits: 0,
+      };
+
+      // Добавляем расширенные поля если они есть
+      const extended = clientData as any;
+      if (extended.birthday && extended.birthday.trim()) insertData.birthday = extended.birthday;
+      if (extended.preferences && extended.preferences.length > 0) insertData.preferences = extended.preferences;
+      if (extended.allergies && extended.allergies.trim()) insertData.allergies = extended.allergies;
+      if (extended.tags && extended.tags.length > 0) insertData.tags = extended.tags;
+      if (extended.discount !== undefined && extended.discount > 0) insertData.discount = extended.discount;
+      if (extended.notes && extended.notes.trim()) insertData.notes = extended.notes;
+
       const { data, error } = await supabase
         .from('clients')
-        .insert({
-          master_id: user.id,
-          full_name: clientData.fullName,
-          phone: clientData.phone,
-          email: clientData.email,
-          total_visits: 0,
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -109,6 +127,27 @@ export function useClients() {
       if (clientData.email !== undefined) updateData.email = clientData.email;
       if (clientData.totalVisits !== undefined) updateData.total_visits = clientData.totalVisits;
       if (clientData.lastVisit !== undefined) updateData.last_visit = clientData.lastVisit;
+
+      // Расширенные поля - проверяем на пустые значения
+      const extended = clientData as any;
+      if (extended.birthday !== undefined) {
+        updateData.birthday = extended.birthday && extended.birthday.trim() ? extended.birthday : null;
+      }
+      if (extended.preferences !== undefined) {
+        updateData.preferences = extended.preferences && extended.preferences.length > 0 ? extended.preferences : null;
+      }
+      if (extended.allergies !== undefined) {
+        updateData.allergies = extended.allergies && extended.allergies.trim() ? extended.allergies : null;
+      }
+      if (extended.tags !== undefined) {
+        updateData.tags = extended.tags && extended.tags.length > 0 ? extended.tags : null;
+      }
+      if (extended.discount !== undefined) {
+        updateData.discount = extended.discount || 0;
+      }
+      if (extended.notes !== undefined) {
+        updateData.notes = extended.notes && extended.notes.trim() ? extended.notes : null;
+      }
 
       const { error } = await supabase
         .from('clients')

@@ -12,6 +12,8 @@ import {
   X,
   CalendarCheck,
   History,
+  Bell,
+  Sparkles,
 } from 'lucide-react';
 
 const masterNavItems = [
@@ -20,12 +22,15 @@ const masterNavItems = [
   { icon: Users, label: 'Клиенты', path: '/clients' },
   { icon: Scissors, label: 'Услуги', path: '/services' },
   { icon: TrendingUp, label: 'Доходы', path: '/income' },
+  { icon: Bell, label: 'Уведомления', path: '/notifications' },
 ];
 
 const clientNavItems = [
   { icon: LayoutDashboard, label: 'Главная', path: '/client' },
+  { icon: Sparkles, label: 'О процедуре', path: '/client/about' },
   { icon: CalendarCheck, label: 'Записаться', path: '/client/booking' },
   { icon: History, label: 'История', path: '/client/history' },
+  { icon: Bell, label: 'Уведомления', path: '/client/notifications' },
 ];
 
 interface MobileMenuProps {

@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
 import { CalendarCheck, TrendingUp, Users, Clock } from 'lucide-react';
+import { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import Topbar from '@/components/layout/Topbar';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useClients } from '@/hooks/useClients';
-import { monthlyIncome } from '@/lib/data';
 import { utcToMinsk, formatTimeMinsk, formatDateMinsk } from '@/lib/timezone';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -35,14 +35,51 @@ export default function MasterDashboard() {
   });
 
   const nextAppointment = todayAppointments.find(a => a.status === 'CONFIRMED' || a.status === 'PENDING');
-  const monthRevenue = monthlyIncome[monthlyIncome.length - 1].income;
+  
+  // Считаем реальный доход за текущий месяц
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthRevenue = appointments
+    .filter(a => {
+      if (a.status !== 'COMPLETED') return false;
+      const aptDate = new Date(a.dateTime);
+      const aptKey = `${aptDate.getFullYear()}-${String(aptDate.getMonth() + 1).padStart(2, '0')}`;
+      return aptKey === currentMonthKey;
+    })
+    .reduce((sum, a) => sum + (a.price || 0), 0);
 
   const stats = [
     { icon: CalendarCheck, label: 'Сегодня записей', value: todayAppointments.length, color: 'text-primary' },
-    { icon: TrendingUp, label: 'Выручка за март', value: `${(monthRevenue / 1000).toFixed(0)}K Br`, color: 'text-accent' },
+    { icon: TrendingUp, label: `Выручка за ${now.toLocaleDateString('ru-RU', { month: 'long' })}`, value: `${monthRevenue.toLocaleString()} Br`, color: 'text-accent' },
     { icon: Users, label: 'Всего клиентов', value: clients.length, color: 'text-blush' },
     { icon: Clock, label: 'Следующая запись', value: nextAppointment ? formatTimeMinsk(utcToMinsk(nextAppointment.dateTime)) : '—', color: 'text-lavender' },
   ];
+
+  // Считаем доходы за последние 6 месяцев
+  const monthlyIncomeData = useMemo(() => {
+    const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+    const data: { month: string; income: number }[] = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthIncome = appointments
+        .filter(a => {
+          if (a.status !== 'COMPLETED') return false;
+          const aptDate = new Date(a.dateTime);
+          const aptKey = `${aptDate.getFullYear()}-${String(aptDate.getMonth() + 1).padStart(2, '0')}`;
+          return aptKey === monthKey;
+        })
+        .reduce((sum, a) => sum + (a.price || 0), 0);
+      
+      data.push({
+        month: monthNames[date.getMonth()],
+        income: monthIncome,
+      });
+    }
+    
+    return data;
+  }, [appointments, now]);
 
   const loading = appointmentsLoading || clientsLoading;
 
@@ -81,7 +118,7 @@ export default function MasterDashboard() {
           <motion.div variants={item} className="glass-card p-4 sm:p-5 lg:col-span-2">
             <h3 className="text-sm font-medium text-muted-foreground mb-4">Динамика дохода</h3>
             <ResponsiveContainer width="100%" height={isMobile ? 200 : 240}>
-              <AreaChart data={monthlyIncome}>
+              <AreaChart data={monthlyIncomeData}>
                 <defs>
                   <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="hsl(340, 45%, 72%)" stopOpacity={0.3} />
@@ -89,7 +126,7 @@ export default function MasterDashboard() {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="month" stroke="hsl(280,8%,40%)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(280,8%,40%)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `${v / 1000}K`} />
+                <YAxis stroke="hsl(280,8%,40%)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
                 <Tooltip
                   contentStyle={{ background: 'hsl(280,8%,7%)', border: '1px solid hsl(280,10%,16%)', borderRadius: 12, color: 'hsl(330,20%,92%)' }}
                   formatter={(v: number) => [`${v.toLocaleString()} Br`, 'Доход']}
